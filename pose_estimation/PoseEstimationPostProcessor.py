@@ -167,18 +167,3 @@ class PoseEstimationPostProcessor:
                     self.check_none_alignment(proc['keypoints'][inst],
                                               proc['keypoint_scores'][inst])
         self.save_numpy()
-
-def main():
-    load_dotenv()
-    ds = os.getenv("DATASET_PATH")
-    # define your left→right instruments here:
-    instruments = ["mridangam", "vocal", "violin"]
-    avoid_artists = [
-        "Abhiram Bode",
-        "Aditi Prahalad",
-    ]
-    pepp = PoseEstimationPostProcessor(ds, instruments)
-    pepp.run(avoid_artists)
-
-if __name__ == "__main__":
-    main()

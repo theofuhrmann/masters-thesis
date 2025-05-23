@@ -31,9 +31,8 @@ class PoseEstimator:
         avoid = set(avoid_artists or [])
         for artist in os.listdir(dataset_path):
             if artist in avoid: continue
+            print(f"Processing {artist}")
             for song in os.listdir(os.path.join(dataset_path, artist)):
-                if song not in ["Segment3"]:
-                    continue
                 song_dir = os.path.join(dataset_path, artist, song)
                 video = self._find_video(song_dir)
                 if video:
@@ -60,19 +59,3 @@ class PoseEstimator:
         with open(out_pkl, 'wb') as f:
             torch.save(results, f)
         print(f" → saved {out_pkl}")
-
-def main():
-    load_dotenv()
-    dataset_path = os.getenv("DATASET_PATH")
-    config_file = "../mmpose/rtmw-x_8xb320-270e_cocktail14-384x288.py"
-    checkpoint_file = "../mmpose/rtmw-x_simcc-cocktail14_pt-ucoco_270e-384x288-f840f204_20231122.pth"
-
-    estimator = PoseEstimator(config_file, checkpoint_file, device='cuda:0')
-    avoid_artists = [
-        "Abhiram Bode",
-        "Aditi Prahalad",
-    ]
-    estimator.process_dataset(dataset_path, avoid_artists=avoid_artists)
-
-if __name__ == "__main__":
-    main()
