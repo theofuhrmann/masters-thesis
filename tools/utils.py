@@ -3,7 +3,10 @@ from scipy.signal import savgol_filter
 
 
 def smooth_keypoints(
-    kps: np.ndarray, smooth_win: int = 5, smooth_poly: int = 2, mode: str = "nearest"
+    kps: np.ndarray,
+    smooth_win: int = 5,
+    smooth_poly: int = 2,
+    mode: str = "nearest",
 ) -> np.ndarray:
     """Smooth keypoints using Savitzky-Golay filter."""
     _, K, D = kps.shape

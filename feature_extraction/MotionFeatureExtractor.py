@@ -1,20 +1,17 @@
-import sys
+import json
 import os
+import sys
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+import numpy as np
+from dotenv import load_dotenv
+from sklearn.decomposition import PCA
+from tqdm import tqdm
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 from tools.body_parts_map import body_parts_map
 from tools.utils import smooth_keypoints
-
-
-import numpy as np
-from dotenv import load_dotenv
-from tqdm import tqdm
-
-
-import json
-from sklearn.decomposition import PCA
 
 
 class MotionFeatureExtractor:
@@ -52,12 +49,18 @@ class MotionFeatureExtractor:
 
         # Compute velocity and acceleration using np.gradient
         velocity = np.gradient(keypoints, axis=0) * self.fps
-        speed = np.where(np.isnan(velocity).any(axis=2),
-                         np.nan, np.linalg.norm(velocity, axis=-1))
+        speed = np.where(
+            np.isnan(velocity).any(axis=2),
+            np.nan,
+            np.linalg.norm(velocity, axis=-1),
+        )
 
         acceleration = np.gradient(velocity, axis=0) * self.fps
-        acceleration_magnitude = np.where(np.isnan(acceleration).any(axis=2),
-                                          np.nan, np.linalg.norm(acceleration, axis=-1))
+        acceleration_magnitude = np.where(
+            np.isnan(acceleration).any(axis=2),
+            np.nan,
+            np.linalg.norm(acceleration, axis=-1),
+        )
 
         return speed, acceleration_magnitude
 
@@ -74,7 +77,7 @@ class MotionFeatureExtractor:
                 "mean_accel": np.nanmean(accel[:, idxs], axis=1).tolist(),
             }
         return summary
-    
+
     def compute_pca(self, motion_features: np.ndarray) -> list:
         valid_frames = ~np.isnan(motion_features).any(axis=1)
         motion_features_clean = motion_features[valid_frames]
@@ -91,7 +94,9 @@ class MotionFeatureExtractor:
             if not os.path.isdir(artist_dir) or artist.startswith("."):
                 continue
             motion_features.setdefault(artist, {})
-            for song in tqdm(os.listdir(artist_dir), desc="Songs", leave=False):
+            for song in tqdm(
+                os.listdir(artist_dir), desc="Songs", leave=False
+            ):
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
@@ -104,21 +109,36 @@ class MotionFeatureExtractor:
                     try:
                         print(f"\nProcessing {artist}/{song}/{inst}")
                         kps = np.load(os.path.join(inst_dir, "keypoints.npy"))
-                        scs = np.load(os.path.join(inst_dir, "keypoint_scores.npy"))
+                        scs = np.load(
+                            os.path.join(inst_dir, "keypoint_scores.npy")
+                        )
                         # drop lower body
                         kps = np.delete(kps, np.s_[11:23], axis=1)
                         scs = np.delete(scs, np.s_[11:23], axis=1)
-                        kps = smooth_keypoints(kps=kps, smooth_poly=self.smooth_poly,
-                                               smooth_win=self.smooth_win)
-                        speed, acceleration = self._compute_speed_accel(kps, scs)
+                        kps = smooth_keypoints(
+                            kps=kps,
+                            smooth_poly=self.smooth_poly,
+                            smooth_win=self.smooth_win,
+                        )
+                        speed, acceleration = self._compute_speed_accel(
+                            kps, scs
+                        )
                         summary = self._summarize(speed, acceleration)
                         motion_features[artist][song][inst] = summary
 
                         # PCA computation and saving
-                        motion_features_framewise = np.concatenate([speed, acceleration], axis=1)
-                        pca_components = self.compute_pca(motion_features_framewise)
+                        motion_features_framewise = np.concatenate(
+                            [speed, acceleration], axis=1
+                        )
+                        pca_components = self.compute_pca(
+                            motion_features_framewise
+                        )
                         pca_output_path = os.path.join(
-                            self.dataset_dir, artist, song, inst, "pca_components.json"
+                            self.dataset_dir,
+                            artist,
+                            song,
+                            inst,
+                            "pca_components.json",
                         )
                         with open(pca_output_path, "w") as f:
                             json.dump(pca_components, f, indent=4)
@@ -132,7 +152,11 @@ class MotionFeatureExtractor:
                     if not summary:
                         continue
                     outp = os.path.join(
-                        self.dataset_dir, artist, song, inst, "motion_features.json"
+                        self.dataset_dir,
+                        artist,
+                        song,
+                        inst,
+                        "motion_features.json",
                     )
                     with open(outp, "w") as f:
                         json.dump(summary, f, indent=4)

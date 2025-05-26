@@ -1,11 +1,12 @@
-import os
-import cv2
 import json
+import os
 import subprocess
+
+import cv2
 import numpy as np
 from body_parts_map import body_parts_map
-from utils import smooth_keypoints
 from dotenv import load_dotenv
+from utils import smooth_keypoints
 
 
 class GestureVisualizer:
@@ -79,17 +80,17 @@ class GestureVisualizer:
 
     def _fill_nan_frames(self, data_array: np.ndarray) -> np.ndarray:
         output_array = data_array.copy()
-        all_nan = (
-            np.isnan(output_array[..., 0]).all(axis=1)
-            & np.isnan(output_array[..., 1]).all(axis=1)
-        )
+        all_nan = np.isnan(output_array[..., 0]).all(axis=1) & np.isnan(
+            output_array[..., 1]
+        ).all(axis=1)
         valid = np.nonzero(~all_nan)[0]
         for i in np.nonzero(all_nan)[0]:
             previous_valid = valid[valid < i]
             next_valid = valid[valid > i]
             if previous_valid.size and next_valid.size:
                 output_array[i] = (
-                    output_array[previous_valid[-1]] + output_array[next_valid[0]]
+                    output_array[previous_valid[-1]]
+                    + output_array[next_valid[0]]
                 ) * 0.5
             elif previous_valid.size:
                 output_array[i] = output_array[previous_valid[-1]]
@@ -144,10 +145,12 @@ class GestureVisualizer:
                 np.array(self.audio_features[instrument]["rms"])
             )
             speed = np.nan_to_num(
-                self.motion_features[instrument]["general"]["mean_speed"], nan=0.0
+                self.motion_features[instrument]["general"]["mean_speed"],
+                nan=0.0,
             )
             acceleration = np.nan_to_num(
-                self.motion_features[instrument]["general"]["mean_accel"], nan=0.0
+                self.motion_features[instrument]["general"]["mean_accel"],
+                nan=0.0,
             )
             self.mean_speed[instrument] = self._normalize(speed)
             self.mean_acceleration[instrument] = self._normalize(acceleration)
@@ -237,15 +240,19 @@ class GestureVisualizer:
             ):
                 x1, y1 = keypoints[skeleton_start]
                 x2, y2 = keypoints[skeleton_end]
-                is_correlated = ( 
-                    "general" in correlated_parts
-                    or any(
-                        skeleton_start in body_parts_map[part] and skeleton_end in body_parts_map[part]
-                        for part in correlated_parts
-                    )
+                is_correlated = "general" in correlated_parts or any(
+                    skeleton_start in body_parts_map[part]
+                    and skeleton_end in body_parts_map[part]
+                    for part in correlated_parts
                 )
-                color = (0, 255, 255) if is_correlated else self._colors()[instrument]
-                cv2.line(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+                color = (
+                    (0, 255, 255)
+                    if is_correlated
+                    else self._colors()[instrument]
+                )
+                cv2.line(
+                    frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2
+                )
 
     def _draw_features(self, frame, instrument, frame_index):
         features = [

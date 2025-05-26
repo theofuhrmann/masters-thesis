@@ -2,3 +2,4 @@
 test_files
 dataset
 **/__pycache__/
+venv

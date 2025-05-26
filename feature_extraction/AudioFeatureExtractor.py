@@ -1,12 +1,11 @@
+import json
+import os
+
 import librosa
 import numpy as np
 from dotenv import load_dotenv
 from scipy.interpolate import interp1d
 from tqdm import tqdm
-
-
-import json
-import os
 
 
 class AudioFeatureExtractor:
@@ -36,8 +35,13 @@ class AudioFeatureExtractor:
         hop_t = self.hop_length / self.sr
         t_orig = np.arange(len(feat)) * hop_t
         t_tgt = np.linspace(0, t_orig[-1], target)
-        f = interp1d(t_orig, feat, kind="linear",
-                     bounds_error=False, fill_value="extrapolate")
+        f = interp1d(
+            t_orig,
+            feat,
+            kind="linear",
+            bounds_error=False,
+            fill_value="extrapolate",
+        )
         return f(t_tgt).tolist()
 
     def extract(self, motion_summary: dict) -> dict:
@@ -49,20 +53,25 @@ class AudioFeatureExtractor:
             if not os.path.isdir(artist_dir) or artist.startswith("."):
                 continue
             audio_features.setdefault(artist, {})
-            for song in tqdm(os.listdir(artist_dir), desc="Songs", leave=False):
+            for song in tqdm(
+                os.listdir(artist_dir), desc="Songs", leave=False
+            ):
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
                 audio_features[artist].setdefault(song, {})
                 for inst in self.instruments:
-                    if "general" not in motion_summary[artist][song].get(inst, {}):
+                    if "general" not in motion_summary[artist][song].get(
+                        inst, {}
+                    ):
                         continue
                     # find .wav files
                     if inst == "mridangam":
                         paths = [
                             os.path.join(song_dir, f)
                             for f in os.listdir(song_dir)
-                            if f.lower().endswith(".wav") and "mri" in f.lower()
+                            if f.lower().endswith(".wav")
+                            and "mri" in f.lower()
                         ]
                     else:
                         paths = [
@@ -72,10 +81,22 @@ class AudioFeatureExtractor:
                         ]
                     if not paths:
                         continue
-                    y, sr = self._merge(paths) if len(paths) > 1 else librosa.load(paths[0], sr=self.sr)
-                    rms = librosa.feature.rms(y=y, hop_length=self.hop_length)[0]
-                    onset = librosa.onset.onset_strength(y=y, sr=sr, hop_length=self.hop_length)
-                    tgt = len(motion_summary[artist][song][inst]["general"]["mean_speed"])
+                    y, sr = (
+                        self._merge(paths)
+                        if len(paths) > 1
+                        else librosa.load(paths[0], sr=self.sr)
+                    )
+                    rms = librosa.feature.rms(y=y, hop_length=self.hop_length)[
+                        0
+                    ]
+                    onset = librosa.onset.onset_strength(
+                        y=y, sr=sr, hop_length=self.hop_length
+                    )
+                    tgt = len(
+                        motion_summary[artist][song][inst]["general"][
+                            "mean_speed"
+                        ]
+                    )
                     audio_features[artist][song][inst] = {
                         "rms": self._resample(rms, tgt),
                         "onset_env": self._resample(onset, tgt),
@@ -85,7 +106,11 @@ class AudioFeatureExtractor:
             for song, insts in songs.items():
                 for inst, feats in insts.items():
                     outp = os.path.join(
-                        self.dataset_dir, artist, song, inst, "audio_features.json"
+                        self.dataset_dir,
+                        artist,
+                        song,
+                        inst,
+                        "audio_features.json",
                     )
                     with open(outp, "w") as f:
                         json.dump(feats, f, indent=4)
