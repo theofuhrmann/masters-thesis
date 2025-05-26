@@ -1,3 +1,4 @@
+import json
 import os
 import torch
 import numpy as np
@@ -5,10 +6,11 @@ import numpy.core.multiarray as multiarray
 from dotenv import load_dotenv
 
 class PoseEstimationPostProcessor:
-    def __init__(self, dataset_path, instruments_left_to_right):
+    def __init__(self, dataset_path, instruments_left_to_right, artist_filter=None):
         load_dotenv()
         self.dataset_path = dataset_path
         self.instruments = instruments_left_to_right
+        self.artist_filter = artist_filter
         # safe‐globals for torch.load
         torch.serialization.add_safe_globals([multiarray._reconstruct])
         _orig_load = torch.load
@@ -17,29 +19,8 @@ class PoseEstimationPostProcessor:
             kwargs["weights_only"] = False
             return _orig_load(*args, **kwargs)
         torch.load = patched_load
-
-        # will hold raw and processed results
-        self.raw = {}      # raw[artist][song] = list of frames × subjects
-        self.processed = {}  # processed[artist][song] = {'keypoints':…, 'keypoint_scores':…}
-
-    def load_results(self, avoid_artists=None):
-        """Load each pose_estimation.pkl into self.raw."""
-        avoid = set(avoid_artists or [])
-        for artist in os.listdir(self.dataset_path):
-            if artist in avoid: continue
-            artist_dir = os.path.join(self.dataset_path, artist)
-            if not os.path.isdir(artist_dir):
-                continue
-            self.raw[artist] = {}
-            for song in os.listdir(artist_dir):
-                song_dir = os.path.join(artist_dir, song)
-                pkl_file = os.path.join(song_dir, 'pose_estimation.pkl')
-                if not os.path.isfile(pkl_file):
-                    continue
-                with open(pkl_file, 'rb') as f:
-                    frames = torch.load(f)
-                self.raw[artist][song] = frames
-                print(f"Loaded {len(frames)} frames for {artist}/{song}")
+        with open(os.path.join(dataset_path, 'dataset_metadata.json'), 'rb') as f:
+            self.metadata = json.load(f)
 
     def calculate_subject_centers(self, frames):
         """Return list of [x,y] for consistently detected subjects."""
@@ -136,34 +117,65 @@ class PoseEstimationPostProcessor:
         else:
             print(" ✅ None aligned")
 
-    def save_numpy(self):
-        """Sanitize and save .npy for each instrument/key."""
-        for artist, songs in self.processed.items():
-            for song, data in songs.items():
-                base = os.path.join(self.dataset_path, artist, song)
-                for dtype, content in data.items():
-                    shape = (133,1) if dtype.endswith('scores') else (133,2)
-                    for inst, lst in content.items():
-                        arr = self.sanitize_nested_list(lst, shape)
-                        outf = os.path.join(base, inst, f"{dtype}.npy")
-                        os.makedirs(os.path.dirname(outf), exist_ok=True)
-                        np.save(outf, arr)
-                        print(f" → saved {outf}")
+    def run(self):
+        """
+        Process each song end-to-end before moving on, 
+        to avoid loading everything into memory at once.
+        """
+        for artist in os.listdir(self.dataset_path):
+            if self.artist_filter and artist != self.artist_filter:
+                continue
+            artist_dir = os.path.join(self.dataset_path, artist)
+            if not os.path.isdir(artist_dir):
+                continue
+            for song in os.listdir(artist_dir):
+                song_dir = os.path.join(artist_dir, song)
+                
+                song_metadata = self.metadata.get(f"{artist}/{song}", {})
+                if song_metadata != {}:
+                    print(f"Skipping {artist}/{song}: {song_metadata}")
+                    continue
 
-    def run(self, avoid_artists=None):
-        self.load_results(avoid_artists=avoid_artists)
-        avoid = set(avoid_artists or [])
-        for artist, songs in self.raw.items():
-            if artist in avoid: continue
-            self.processed[artist] = {}
-            for song, frames in songs.items():
+                pkl_file = os.path.join(song_dir, 'pose_estimation.pkl')
+                if not os.path.isfile(pkl_file):
+                    continue
+
+                skip = True
+                for inst in self.instruments:
+                    inst_dir = os.path.join(song_dir, inst)
+                    kps_file = os.path.join(inst_dir, "keypoints.npy")
+                    scs_file = os.path.join(inst_dir, "keypoint_scores.npy")
+                    if not (os.path.isfile(kps_file) and os.path.isfile(scs_file)):
+                        skip = False
+                        break
+                if skip:
+                    print(f"Skipping {artist}/{song} (already processed)")
+                    continue
+
                 print(f"\nProcessing {artist}/{song}")
+                # load only this song's frames into memory
+                frames = torch.load(pkl_file)
                 proc, centers = self.reorder_and_map(frames)
-                self.processed[artist][song] = proc
                 print(" Reference centers:", centers)
                 # sanity‐check alignment
                 for inst in proc['keypoints']:
                     print(f"Checking {inst}")
-                    self.check_none_alignment(proc['keypoints'][inst],
-                                              proc['keypoint_scores'][inst])
-        self.save_numpy()
+                    self.check_none_alignment(
+                        proc['keypoints'][inst],
+                        proc['keypoint_scores'][inst]
+                    )
+                # save results immediately, then free memory
+                for dtype, content in proc.items():
+                    self._save_numpy_for(artist, song, dtype, content)
+                del frames, proc
+
+    def _save_numpy_for(self, artist, song, dtype, content):
+        """Helper to save one song's outputs and avoid storing them."""
+        base = os.path.join(self.dataset_path, artist, song)
+        shape = (133, 1) if dtype.endswith('scores') else (133, 2)
+        for inst, lst in content.items():
+            arr = self.sanitize_nested_list(lst, shape)
+            outf = os.path.join(base, inst, f"{dtype}.npy")
+            os.makedirs(os.path.dirname(outf), exist_ok=True)
+            np.save(outf, arr)
+            print(f" → saved {outf}")

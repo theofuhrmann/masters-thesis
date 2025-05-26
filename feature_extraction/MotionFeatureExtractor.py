@@ -1,5 +1,11 @@
-from body_parts_map import body_parts_map
-from utils import smooth_keypoints
+import sys
+import os
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
+from tools.body_parts_map import body_parts_map
+from tools.utils import smooth_keypoints
 
 
 import numpy as np
@@ -8,7 +14,7 @@ from tqdm import tqdm
 
 
 import json
-import os
+from sklearn.decomposition import PCA
 
 
 class MotionFeatureExtractor:
@@ -21,6 +27,7 @@ class MotionFeatureExtractor:
         conf_threshold: float = 5.0,
         smooth_win: int = 5,
         smooth_poly: int = 2,
+        pca_components: int = 3,
     ):
         load_dotenv()
         self.dataset_dir = dataset_dir
@@ -31,6 +38,7 @@ class MotionFeatureExtractor:
         self.smooth_win = smooth_win
         self.smooth_poly = smooth_poly
         self.body_parts_map = body_parts_map
+        self.pca_components = pca_components
 
     def _compute_speed_accel(
         self, keypoints: np.ndarray, scores: np.ndarray
@@ -66,6 +74,13 @@ class MotionFeatureExtractor:
                 "mean_accel": np.nanmean(accel[:, idxs], axis=1).tolist(),
             }
         return summary
+    
+    def compute_pca(self, motion_features: np.ndarray) -> list:
+        valid_frames = ~np.isnan(motion_features).any(axis=1)
+        motion_features_clean = motion_features[valid_frames]
+        pca = PCA(n_components=self.pca_components)
+        pca.fit(motion_features_clean)
+        return pca.components_.tolist()
 
     def extract(self) -> dict:
         motion_features = {}
@@ -83,9 +98,11 @@ class MotionFeatureExtractor:
                 motion_features[artist].setdefault(song, {})
                 for inst in self.instruments:
                     inst_dir = os.path.join(song_dir, inst)
+                    print(f"Checking {artist}/{song}/{inst}")
                     if not os.path.isdir(inst_dir):
                         continue
                     try:
+                        print(f"\nProcessing {artist}/{song}/{inst}")
                         kps = np.load(os.path.join(inst_dir, "keypoints.npy"))
                         scs = np.load(os.path.join(inst_dir, "keypoint_scores.npy"))
                         # drop lower body
@@ -93,20 +110,29 @@ class MotionFeatureExtractor:
                         scs = np.delete(scs, np.s_[11:23], axis=1)
                         kps = smooth_keypoints(kps=kps, smooth_poly=self.smooth_poly,
                                                smooth_win=self.smooth_win)
-                        speed, accel = self._compute_speed_accel(kps, scs)
-                        summary = self._summarize(speed, accel)
+                        speed, acceleration = self._compute_speed_accel(kps, scs)
+                        summary = self._summarize(speed, acceleration)
                         motion_features[artist][song][inst] = summary
+
+                        # PCA computation and saving
+                        motion_features_framewise = np.concatenate([speed, acceleration], axis=1)
+                        pca_components = self.compute_pca(motion_features_framewise)
+                        pca_output_path = os.path.join(
+                            self.dataset_dir, artist, song, inst, "pca_components.json"
+                        )
+                        with open(pca_output_path, "w") as f:
+                            json.dump(pca_components, f, indent=4)
                     except Exception as e:
                         print(f"Motion error {artist}/{song}/{inst}: {e}")
                         motion_features[artist][song][inst] = {}
-        # save out
+
         for artist, songs in motion_features.items():
             for song, insts in songs.items():
                 for inst, summary in insts.items():
                     if not summary:
                         continue
                     outp = os.path.join(
-                        self.dataset_dir, artist, song, inst, "motion_features_3.json"
+                        self.dataset_dir, artist, song, inst, "motion_features.json"
                     )
                     with open(outp, "w") as f:
                         json.dump(summary, f, indent=4)

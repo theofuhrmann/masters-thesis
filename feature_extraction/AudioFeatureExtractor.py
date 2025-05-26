@@ -85,7 +85,7 @@ class AudioFeatureExtractor:
             for song, insts in songs.items():
                 for inst, feats in insts.items():
                     outp = os.path.join(
-                        self.dataset_dir, artist, song, inst, "audio_features_2.json"
+                        self.dataset_dir, artist, song, inst, "audio_features.json"
                     )
                     with open(outp, "w") as f:
                         json.dump(feats, f, indent=4)

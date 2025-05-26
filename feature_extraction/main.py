@@ -1,12 +1,12 @@
 from dotenv import load_dotenv
 import os
-from feature_extraction.AudioFeatureExtractor import AudioFeatureExtractor
-from feature_extraction.MotionFeatureExtractor import MotionFeatureExtractor
+from AudioFeatureExtractor import AudioFeatureExtractor
+from MotionFeatureExtractor import MotionFeatureExtractor
 
 load_dotenv()
 ds = os.getenv("DATASET_PATH")
 instruments = ["vocal", "mridangam", "violin"]
-artist = "Aditi Prahalad"
+artist = "Abhiram Bode"
 
 motion_extractor = MotionFeatureExtractor(
     dataset_dir=ds,

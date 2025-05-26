@@ -35,6 +35,11 @@ class PoseEstimator:
             for song in os.listdir(os.path.join(dataset_path, artist)):
                 song_dir = os.path.join(dataset_path, artist, song)
                 video = self._find_video(song_dir)
+                already_processed = os.path.exists(
+                    os.path.join(song_dir, 'pose_estimation.pkl'))
+                if already_processed:
+                    print(f" → already processed {song}")
+                    continue
                 if video:
                     self._process_video(artist, song, song_dir, video)
 
@@ -46,16 +51,17 @@ class PoseEstimator:
 
     def _process_video(self, artist, song, song_dir, video_path):
         print(f"Processing {song} for {artist}")
-        gen = self.inferencer(video_path, show=False)
+        gen = self.inferencer(video_path, show=False, batch_size=4)
 
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            raise IOError(f"Cannot open {video_path}")
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        cap.release()
+            print(f"Error: Cannot open {video_path}")
+        else:
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            cap.release()
 
-        results = [r['predictions'][0] for r in tqdm(gen, total=frame_count)]
-        out_pkl = os.path.join(song_dir, 'pose_estimation.pkl')
-        with open(out_pkl, 'wb') as f:
-            torch.save(results, f)
-        print(f" → saved {out_pkl}")
+            results = [r['predictions'][0] for r in tqdm(gen, total=frame_count)]
+            out_pkl = os.path.join(song_dir, 'pose_estimation.pkl')
+            with open(out_pkl, 'wb') as f:
+                torch.save(results, f)
+            print(f" → saved {out_pkl}")
