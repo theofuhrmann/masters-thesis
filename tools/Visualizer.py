@@ -1,12 +1,17 @@
 import json
 import os
 import subprocess
+import sys
 
 import cv2
 import numpy as np
-from body_parts_map import body_parts_map
 from dotenv import load_dotenv
-from utils import smooth_keypoints
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
+
+from tools.body_parts_map import body_parts_map  # noqa: E402
+from tools.utils import smooth_keypoints  # noqa: E402
 
 
 class GestureVisualizer:
@@ -75,8 +80,14 @@ class GestureVisualizer:
             self.keypoint_scores[instrument] = np.load(
                 keypoint_scores_file, allow_pickle=True
             )
-            with open(correlation_windows_file) as f:
-                self.correlation_windows[instrument] = json.load(f)
+            if not os.path.exists(correlation_windows_file):
+                print(
+                    f"Warning: Correlation windows file not found for {instrument} in {self.base_directory}"
+                )
+                self.correlation_windows[instrument] = {}
+            else:
+                with open(correlation_windows_file) as f:
+                    self.correlation_windows[instrument] = json.load(f)
 
     def _fill_nan_frames(self, data_array: np.ndarray) -> np.ndarray:
         output_array = data_array.copy()
@@ -112,10 +123,10 @@ class GestureVisualizer:
     def _load_motion_audio(self):
         for instrument in self.instruments:
             motion_features_file = os.path.join(
-                self.base_directory, instrument, "motion_features_3.json"
+                self.base_directory, instrument, "motion_features.json"
             )
             audio_features_file = os.path.join(
-                self.base_directory, instrument, "audio_features_2.json"
+                self.base_directory, instrument, "audio_features.json"
             )
             with open(motion_features_file) as f:
                 self.motion_features[instrument] = json.load(f)
@@ -149,7 +160,9 @@ class GestureVisualizer:
                 nan=0.0,
             )
             acceleration = np.nan_to_num(
-                self.motion_features[instrument]["general"]["mean_accel"],
+                self.motion_features[instrument]["general"][
+                    "mean_acceleration"
+                ],
                 nan=0.0,
             )
             self.mean_speed[instrument] = self._normalize(speed)
@@ -227,23 +240,34 @@ class GestureVisualizer:
         keypoints,
         keypoint_scores,
         instrument,
-        correlated_parts,
-        confidence_threshold,
+        correlated_parts=None,
+        confidence_threshold=5,
+        show_lower_body=False,
     ):
         for i, (x, y) in enumerate(keypoints):
-            if keypoint_scores[i] > confidence_threshold:
+            if keypoint_scores[i] > confidence_threshold and (
+                show_lower_body or i < 11 or i > 23
+            ):
                 cv2.circle(frame, (int(x), int(y)), 4, (0, 255, 255), -1)
         for skeleton_start, skeleton_end in self._skeleton():
             if (
                 keypoint_scores[skeleton_start] > confidence_threshold
                 and keypoint_scores[skeleton_end] > confidence_threshold
+                and (
+                    show_lower_body
+                    or (skeleton_start < 11 and skeleton_end < 11)
+                    or (skeleton_start > 23 and skeleton_end > 23)
+                )
             ):
                 x1, y1 = keypoints[skeleton_start]
                 x2, y2 = keypoints[skeleton_end]
-                is_correlated = "general" in correlated_parts or any(
-                    skeleton_start in body_parts_map[part]
-                    and skeleton_end in body_parts_map[part]
-                    for part in correlated_parts
+                is_correlated = correlated_parts and (
+                    "general" in correlated_parts
+                    or any(
+                        skeleton_start in body_parts_map[part]
+                        and skeleton_end in body_parts_map[part]
+                        for part in correlated_parts
+                    )
                 )
                 color = (
                     (0, 255, 255)
@@ -343,19 +367,20 @@ class GestureVisualizer:
 def main():
     load_dotenv()
     dataset_path = os.getenv("DATASET_PATH")
-    artist = "Ameya Karthikeyan"
-    song = "Segment1"
+    artist = "Abhiram Bode"
+    song = "Lekanna ninnu"
     gesture_visualizer = GestureVisualizer(
         dataset_path=dataset_path,
-        artist="Ameya Karthikeyan",
-        song="Segment1",
+        artist=artist,
+        song=song,
         instruments=["violin", "vocal", "mridangam"],
         window_size=5,
     )
     gesture_visualizer.visualize(
         output_file=os.path.join(
             dataset_path, artist, song, "visualized_latest.mp4"
-        )
+        ),
+        confidence_threshold=3,
     )
 
 
