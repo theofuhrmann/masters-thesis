@@ -56,17 +56,14 @@ class MotionFeatureExtractor:
         return []
 
     def _process_keypoints(self, keypoints, scores, occluded_parts):
-        lower_body_indexes = list(range(11, 23))
-        occluded_keypoints = []
-
-        keypoints = np.delete(keypoints, lower_body_indexes, axis=1)
-        scores = np.delete(scores, lower_body_indexes, axis=1)
+        keypoints_to_remove = []
+        for part in ["left_leg", "right_leg", "left_foot", "right_foot"]:
+            keypoints_to_remove.extend(self.body_parts_map[part])
 
         for part in occluded_parts:
-            occluded_keypoints.extend(self.body_parts_map[part])
+            keypoints_to_remove.extend(self.body_parts_map[part])
 
-        # Combine all keypoints to remove and sort them
-        keypoints_to_remove = sorted(set(occluded_keypoints))
+        keypoints_to_remove = sorted(set(keypoints_to_remove))
 
         # Build old-to-new index mapping
         total_kpts = keypoints.shape[1]
@@ -126,12 +123,7 @@ class MotionFeatureExtractor:
 
         return speed, acceleration_magnitude
 
-    def _summarize(
-        self,
-        speed: np.ndarray,
-        accel: np.ndarray,
-        body_parts_map: dict,
-    ) -> dict:
+    def _summarize(self,speed: np.ndarray,accel: np.ndarray, body_parts_map: dict) -> dict:
         summary = {
             "general": {
                 "mean_speed": np.nanmean(speed, axis=1).tolist(),
@@ -141,9 +133,7 @@ class MotionFeatureExtractor:
         for part, idxs in body_parts_map.items():
             summary[part] = {
                 "mean_speed": np.nanmean(speed[:, idxs], axis=1).tolist(),
-                "mean_acceleration": np.nanmean(
-                    accel[:, idxs], axis=1
-                ).tolist(),
+                "mean_acceleration": np.nanmean(accel[:, idxs], axis=1).tolist(),
             }
 
         return summary
@@ -171,9 +161,7 @@ class MotionFeatureExtractor:
                 continue
             print(f"Processing artist: {artist}")
             motion_features.setdefault(artist, {})
-            for song in tqdm(
-                os.listdir(artist_dir), desc="Songs", leave=False
-            ):
+            for song in tqdm(os.listdir(artist_dir), desc="Songs", leave=False):
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
@@ -181,26 +169,19 @@ class MotionFeatureExtractor:
                 motion_features[artist].setdefault(song, {})
                 for instrument in self.instruments:
                     inst_dir = os.path.join(song_dir, instrument)
-                    print(f"Checking {artist}/{song}/{instrument}")
                     if not os.path.isdir(inst_dir):
                         continue
                     try:
-                        print(f"\nProcessing {artist}/{song}/{instrument}")
-                        keypoints = np.load(
-                            os.path.join(inst_dir, "keypoints.npy")
-                        )
+                        keypoints = np.load(os.path.join(inst_dir, "keypoints.npy"))
                         scores = np.load(
                             os.path.join(inst_dir, "keypoint_scores.npy")
                         )
                         metadata = self.dataset_metadata.get(artist, {}).get(
                             song, {}
                         )
-                        if ignore_occluded_parts:
-                            occluded_parts = []
-                        else:
-                            occluded_parts = self._get_occluded_parts(
+                        occluded_parts = self._get_occluded_parts(
                                 instrument, metadata
-                            )
+                            ) if not ignore_occluded_parts else []
                         keypoints, scores, updated_body_parts_map = (
                             self._process_keypoints(
                                 keypoints, scores, occluded_parts
@@ -223,7 +204,6 @@ class MotionFeatureExtractor:
                         )
                         motion_features[artist][song][instrument] = {}
                     try:
-                        # PCA computation and saving
                         motion_features_framewise = np.concatenate(
                             [speed, acceleration], axis=1
                         )
