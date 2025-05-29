@@ -8,7 +8,6 @@ from MotionFeatureExtractor import MotionFeatureExtractor
 load_dotenv()
 ds = os.getenv("DATASET_PATH")
 instruments = ["vocal", "mridangam", "violin"]
-artist = "Abhiram Bode"
 
 parser = argparse.ArgumentParser(description="Feature extraction script")
 parser.add_argument(
@@ -23,21 +22,26 @@ parser.add_argument(
     default=5.0,
     help="Confidence threshold for motion feature extraction",
 )
+parser.add_argument(
+    "--ignore_occluded_parts",
+    action="store_true",
+    help="Ignore occluded body parts during motion feature extraction",
+)
+
 args = parser.parse_args()
 
 if args.extract in ["motion", "both"]:
     motion_extractor = MotionFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,
-        artist_filter=artist,
         conf_threshold=args.confidence_threshold,
+        motion_output_filename="motion_features_occluded.json",
+        pca_output_filename="pca_components_occluded.json",
     )
-    motion_summary = motion_extractor.extract()
-else:
-    motion_summary = None
+    motion_extractor.extract(ignore_occluded_parts=args.ignore_occluded_parts)
 
 if args.extract in ["audio", "both"]:
     audio_extractor = AudioFeatureExtractor(
-        dataset_dir=ds, instruments=instruments, artist_filter=artist
+        dataset_dir=ds, instruments=instruments
     )
-    audio_extractor.extract(motion_summary)
+    audio_extractor.extract()

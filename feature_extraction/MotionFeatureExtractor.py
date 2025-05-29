@@ -25,6 +25,8 @@ class MotionFeatureExtractor:
         smooth_win: int = 5,
         smooth_poly: int = 2,
         pca_components: int = 3,
+        motion_output_filename: str = "motion_features.json",
+        pca_output_filename: str = "pca_components.json",
     ):
         load_dotenv()
         self.dataset_dir = dataset_dir
@@ -36,6 +38,8 @@ class MotionFeatureExtractor:
         self.smooth_poly = smooth_poly
         self.body_parts_map = body_parts_map
         self.pca_components = pca_components
+        self.output_filename = motion_output_filename
+        self.pca_output_filename = pca_output_filename
 
         with open(
             os.path.join(dataset_dir, "dataset_metadata.json"), "r"
@@ -157,7 +161,7 @@ class MotionFeatureExtractor:
             "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
         }
 
-    def extract(self) -> dict:
+    def extract(self, ignore_occluded_parts: bool = False) -> dict:
         motion_features = {}
         for artist in tqdm(os.listdir(self.dataset_dir), desc="Artists"):
             if self.artist_filter and artist != self.artist_filter:
@@ -191,9 +195,12 @@ class MotionFeatureExtractor:
                         metadata = self.dataset_metadata.get(artist, {}).get(
                             song, {}
                         )
-                        occluded_parts = self._get_occluded_parts(
-                            instrument, metadata
-                        )
+                        if ignore_occluded_parts:
+                            occluded_parts = []
+                        else:
+                            occluded_parts = self._get_occluded_parts(
+                                instrument, metadata
+                            )
                         keypoints, scores, updated_body_parts_map = (
                             self._process_keypoints(
                                 keypoints, scores, occluded_parts
@@ -228,7 +235,7 @@ class MotionFeatureExtractor:
                             artist,
                             song,
                             instrument,
-                            "pca_components.json",
+                            self.pca_output_filename,
                         )
                         with open(pca_output_path, "w") as f:
                             json.dump(pca_components, f, indent=4)
@@ -245,7 +252,7 @@ class MotionFeatureExtractor:
                         artist,
                         song,
                         instrument,
-                        "motion_features.json",
+                        self.output_filename,
                     )
                     with open(outp, "w") as f:
                         json.dump(summary, f, indent=4)

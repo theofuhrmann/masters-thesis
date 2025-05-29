@@ -44,7 +44,7 @@ class AudioFeatureExtractor:
         )
         return f(t_tgt).tolist()
 
-    def extract(self, motion_summary: dict) -> dict:
+    def extract(self) -> dict:
         audio_features = {}
         for artist in tqdm(os.listdir(self.dataset_dir), desc="Artists"):
             if self.artist_filter and artist != self.artist_filter:
@@ -61,9 +61,15 @@ class AudioFeatureExtractor:
                     continue
                 audio_features[artist].setdefault(song, {})
                 for inst in self.instruments:
-                    if "general" not in motion_summary[artist][song].get(
-                        inst, {}
-                    ):
+                    try:
+                        with open(
+                            os.path.join(song_dir, inst, "motion_features.json"), "r"
+                        ) as f:
+                            motion_features = json.load(f)
+                    except FileNotFoundError:
+                        print(
+                            f"Skipping {artist}/{song}/{inst}: motion features not found."
+                        )
                         continue
                     # find .wav files
                     if inst == "mridangam":
@@ -92,14 +98,10 @@ class AudioFeatureExtractor:
                     onset = librosa.onset.onset_strength(
                         y=y, sr=sr, hop_length=self.hop_length
                     )
-                    tgt = len(
-                        motion_summary[artist][song][inst]["general"][
-                            "mean_speed"
-                        ]
-                    )
+                    target_frames = len(motion_features["general"]["mean_speed"])
                     audio_features[artist][song][inst] = {
-                        "rms": self._resample(rms, tgt),
-                        "onset_env": self._resample(onset, tgt),
+                        "rms": self._resample(rms, target_frames),
+                        "onset_env": self._resample(onset, target_frames),
                     }
         # save out
         for artist, songs in audio_features.items():
