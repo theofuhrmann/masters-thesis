@@ -145,8 +145,11 @@ class PoseEstimationPostProcessor:
             for song in os.listdir(artist_dir):
                 song_dir = os.path.join(artist_dir, song)
 
-                song_metadata = self.metadata.get(f"{artist}/{song}", {})
-                if song_metadata != {}:
+                song_metadata = self.metadata.get(artist, {}).get(song, {})
+                if song_metadata != {} and (
+                    song_metadata["performers"] != len(self.instruments)
+                    or song_metadata["moving_camera"]
+                ):
                     print(f"Skipping {artist}/{song}: {song_metadata}")
                     continue
 
