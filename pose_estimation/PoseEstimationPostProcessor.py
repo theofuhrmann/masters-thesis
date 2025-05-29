@@ -147,7 +147,7 @@ class PoseEstimationPostProcessor:
 
                 song_metadata = self.metadata.get(artist, {}).get(song, {})
                 if song_metadata != {} and (
-                    song_metadata["performers"] != len(self.instruments)
+                    len(song_metadata["layout"]) != len(self.instruments)
                     or song_metadata["moving_camera"]
                 ):
                     print(f"Skipping {artist}/{song}: {song_metadata}")
