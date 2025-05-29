@@ -114,7 +114,7 @@ class GestureVisualizer:
             raw_keypoints = self.keypoints[instrument]
             filled_keypoints = self._fill_nan_frames(raw_keypoints)
             self.keypoints[instrument] = smooth_keypoints(
-                kps=filled_keypoints,
+                keypoints=filled_keypoints,
                 smooth_poly=self.smoothing_poly_order,
                 smooth_win=self.window_size,
                 mode=self.smoothing_mode,
