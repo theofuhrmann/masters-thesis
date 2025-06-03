@@ -24,12 +24,20 @@ class GestureVisualizer:
         window_size: int = 5,
         smoothing_mode: str = "nearest",
         smoothing_poly_order: int = 2,
+        motion_features_filename: str = "motion_features.json",
+        audio_features_filename: str = "audio_features.json",
+        pca_components_filename: str = "pca_components.json",
+        correlation_windows_filename: str = "strong_correlation_05s_windows.json",
     ):
         load_dotenv()
         self.dataset_path = dataset_path
         self.artist = artist
         self.song = song
         self.instruments = instruments
+        self.motion_features_filename = motion_features_filename
+        self.audio_features_filename = audio_features_filename
+        self.pca_components_filename = pca_components_filename
+        self.correlation_windows_filename = correlation_windows_filename
 
         # filepaths
         self.base_directory = os.path.join(dataset_path, artist, song)
@@ -49,6 +57,9 @@ class GestureVisualizer:
         self.smoothing_poly_order = smoothing_poly_order
 
         # data holders
+        self.dataset_metadata = {}
+        self.pca_components = {}
+        self.pca_explained_variance = {}
         self.keypoints = {}
         self.keypoint_scores = {}
         self.correlation_windows = {}
@@ -56,10 +67,19 @@ class GestureVisualizer:
         self.audio_features = {}
 
         # load all data
+        self._load_dataset_metadata()
         self._load_pose_data()
         self._preprocess_keypoints()
         self._load_motion_audio()
+        self._load_pca()
         self._normalize_features()
+
+    def _load_dataset_metadata(self):
+        metadata_file = os.path.join(self.dataset_path, "dataset_metadata.json")
+        if not os.path.exists(metadata_file):
+            raise FileNotFoundError(f"Metadata file not found: {metadata_file}")
+        with open(metadata_file) as f:
+            self.dataset_metadata = json.load(f)[self.artist][self.song]
 
     def _load_pose_data(self):
         for instrument in self.instruments:
@@ -72,7 +92,7 @@ class GestureVisualizer:
             correlation_windows_file = os.path.join(
                 self.base_directory,
                 instrument,
-                "strong_correlation_05s_windows.json",
+                self.correlation_windows_filename,
             )
             self.keypoints[instrument] = np.load(
                 keypoints_file, allow_pickle=True
@@ -123,15 +143,39 @@ class GestureVisualizer:
     def _load_motion_audio(self):
         for instrument in self.instruments:
             motion_features_file = os.path.join(
-                self.base_directory, instrument, "motion_features.json"
+                self.base_directory, instrument, self.motion_features_filename
             )
             audio_features_file = os.path.join(
-                self.base_directory, instrument, "audio_features.json"
+                self.base_directory, instrument, self.audio_features_filename
             )
             with open(motion_features_file) as f:
                 self.motion_features[instrument] = json.load(f)
             with open(audio_features_file) as f:
                 self.audio_features[instrument] = json.load(f)
+
+    def _load_pca(self):
+        self.pca_components = {}
+        self.pca_explained_variance = {}
+        for instrument in self.instruments:
+            pca_file = os.path.join(self.base_directory, instrument, self.pca_components_filename)
+            with open(pca_file) as f:
+                pca_data = json.load(f)
+            self.pca_components[instrument] = np.array(pca_data["components"])
+            self.pca_explained_variance[instrument] = np.array(pca_data["explained_variance_ratio"])
+
+    def _get_keypoint_pca_contributions(self, instrument, occluded_keypoints, top_n=None):
+        visible_keypoints = [i for i in list(range(133)) if i not in occluded_keypoints]
+        top_component = self.pca_components[instrument][0]
+        keypoint_importance = []
+        for i in range(len(top_component) // 2):
+            speed_component = top_component[i]
+            acceleration_component = top_component[i + len(top_component) // 2]
+            contribution = np.sum(np.abs(speed_component + acceleration_component))
+            original_kp_index = visible_keypoints[i]
+            keypoint_importance.append((original_kp_index, contribution))
+        
+        keypoint_importance.sort(key=lambda x: x[1], reverse=True)
+        return keypoint_importance[:top_n] if top_n else keypoint_importance
 
     def _normalize(self, data: np.ndarray) -> np.ndarray:
         percentile_5, percentile_95 = np.percentile(data, [5, 95])
@@ -210,13 +254,13 @@ class GestureVisualizer:
                             instrument
                         ].items():
                             for win_list in types.values():
-                                for w in win_list:
+                                for window, value in win_list:
                                     if (
-                                        w * frames_per_second
+                                        window * frames_per_second
                                         <= frame_index
-                                        < (w + 2) * frames_per_second
+                                        < (window + 2) * frames_per_second
                                     ):
-                                        correlated_parts.append(body_part)
+                                        correlated_parts.append((body_part, value))
                         # draw skeleton & features
                         self._draw_skeleton(
                             frame,
@@ -243,40 +287,70 @@ class GestureVisualizer:
         correlated_parts=None,
         confidence_threshold=5,
         show_lower_body=False,
+        show_occluded_parts=False,
     ):
-        for i, (x, y) in enumerate(keypoints):
-            if keypoint_scores[i] > confidence_threshold and (
-                show_lower_body or i < 11 or i > 23
-            ):
-                cv2.circle(frame, (int(x), int(y)), 4, (0, 255, 255), -1)
+        occluded_keypoints = []
+        if not show_lower_body:
+            occluded_keypoints.extend(body_parts_map["left_leg"])
+            occluded_keypoints.extend(body_parts_map["right_leg"])
+            occluded_keypoints.extend(body_parts_map["left_foot"])
+            occluded_keypoints.extend(body_parts_map["right_foot"])
+        if not show_occluded_parts:
+            if instrument == self.dataset_metadata["layout"][0]:
+                occluded_keypoints.extend(body_parts_map["left_arm"])
+                occluded_keypoints.extend(body_parts_map["left_hand"])
+            elif instrument == self.dataset_metadata["layout"][-1]:
+                occluded_keypoints.extend(body_parts_map["right_arm"])
+                occluded_keypoints.extend(body_parts_map["right_hand"])
+
         for skeleton_start, skeleton_end in self._skeleton():
             if (
                 keypoint_scores[skeleton_start] > confidence_threshold
                 and keypoint_scores[skeleton_end] > confidence_threshold
-                and (
-                    show_lower_body
-                    or (skeleton_start < 11 and skeleton_end < 11)
-                    or (skeleton_start > 23 and skeleton_end > 23)
-                )
+                and skeleton_start not in occluded_keypoints
+                and skeleton_end not in occluded_keypoints
             ):
                 x1, y1 = keypoints[skeleton_start]
                 x2, y2 = keypoints[skeleton_end]
-                is_correlated = correlated_parts and (
-                    "general" in correlated_parts
-                    or any(
-                        skeleton_start in body_parts_map[part]
-                        and skeleton_end in body_parts_map[part]
-                        for part in correlated_parts
-                    )
-                )
-                color = (
-                    (0, 255, 255)
-                    if is_correlated
-                    else self._colors()[instrument]
-                )
+                correlation_value = 0
+                if correlated_parts:
+                    for part, value in correlated_parts:
+                        if "general" == part or (
+                            skeleton_start in body_parts_map[part]
+                            and skeleton_end in body_parts_map[part]
+                        ):
+                            correlation_value = value
+                            break
+
+                base_color = self._colors()[instrument]
+                # Adjust color based on correlation_value (0 to 1)
+                b, g, r = base_color
+                if correlation_value > 0:
+                    b = int(min(b + (255 - b) * correlation_value, 255))
+                    g = int(min(g + (255 - g) * correlation_value, 255))
+                    r = int(min(r + (255 - r) * correlation_value, 255))
+                else:
+                    b = int(max(b + b * correlation_value, 0))
+                    g = int(max(g + g * correlation_value, 0))
+                    r = int(max(r + r * correlation_value, 0))
+                color = (b, g, r)
+
                 cv2.line(
                     frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2
                 )
+
+        contributions = self._get_keypoint_pca_contributions(instrument, occluded_keypoints)
+
+        max_contribution = max(c[1] for c in contributions) if contributions else 1
+        for i, (x, y) in enumerate(keypoints):
+            if keypoint_scores[i] > confidence_threshold and i not in occluded_keypoints:
+                contribution_tuple = next((c for c in contributions if c[0] == i), None)
+                contribution = contribution_tuple[1] if contribution_tuple else 0
+                
+                intensity = int(255 * (contribution / max_contribution)) if max_contribution > 0 else 255
+                color = (intensity, intensity, intensity)
+                cv2.circle(frame, (int(x), int(y)), 4, color, -1)
+
 
     def _draw_features(self, frame, instrument, frame_index):
         features = [
@@ -292,9 +366,7 @@ class GestureVisualizer:
                 text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2
             )
             x = 20 + (frame_width - 40 - text_width) * (instrument == "violin")
-            x = (frame_width // 2 - text_width // 2) * (
-                instrument == "vocal"
-            ) or x
+            x = (frame_width // 2 - text_width // 2) * (instrument == "vocal") or x
             y = frame_height - 20 - i * 30
             cv2.rectangle(
                 frame,
@@ -353,6 +425,18 @@ class GestureVisualizer:
             (13, 15),
             (12, 14),
             (14, 16),
+            # left hand
+            (91, 92), (92, 93), (93, 94), (94, 95),
+            (91, 96), (96, 97), (97, 98), (98, 99),
+            (91, 100), (100, 101), (101, 102), (102, 103),
+            (91, 104), (104, 105), (105, 106), (106, 107),
+            (91, 108), (108, 109), (109, 110), (110, 111),
+            # right hand
+            (112, 113), (113, 114), (114, 115), (115, 116),
+            (112, 117), (117, 118), (118, 119), (119, 120),
+            (112, 121), (121, 122), (122, 123), (123, 124),
+            (112, 125), (125, 126), (126, 127), (127, 128),
+            (112, 129), (129, 130), (130, 131), (131, 132),
         ]
 
     @staticmethod
@@ -367,18 +451,22 @@ class GestureVisualizer:
 def main():
     load_dotenv()
     dataset_path = os.getenv("DATASET_PATH")
-    artist = "Abhiram Bode"
-    song = "Lekanna ninnu"
+    artist = "Ameya Karthikeyan"
+    song = "Jalajakshi"
     gesture_visualizer = GestureVisualizer(
         dataset_path=dataset_path,
         artist=artist,
         song=song,
         instruments=["violin", "vocal", "mridangam"],
         window_size=5,
+        motion_features_filename="motion_features.json",
+        audio_features_filename="audio_features.json",
+        pca_components_filename="pca_components.json",
+        correlation_windows_filename="00_correlation_05s_windows.json",
     )
     gesture_visualizer.visualize(
         output_file=os.path.join(
-            dataset_path, artist, song, "visualized_latest.mp4"
+            dataset_path, artist, song, "visualized_latest_pca_occluded.mp4"
         ),
         confidence_threshold=3,
     )

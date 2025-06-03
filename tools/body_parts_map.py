@@ -143,6 +143,6 @@ body_parts_map = {
     "left_foot": [17, 18, 19],
     "right_foot": [20, 21, 22],
     "face": list(range(23, 91)),
-    "left_hand": list(range(91, 113)),
-    "right_hand": list(range(113, 133)),
+    "left_hand": list(range(91, 112)),
+    "right_hand": list(range(112, 133)),
 }
