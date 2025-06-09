@@ -24,10 +24,10 @@ class GestureVisualizer:
         window_size: int = 5,
         smoothing_mode: str = "nearest",
         smoothing_poly_order: int = 2,
-        motion_features_filename: str = "motion_features.json",
-        audio_features_filename: str = "audio_features.json",
-        pca_components_filename: str = "pca_components.json",
-        correlation_windows_filename: str = "strong_correlation_05s_windows.json",
+        motion_features_filename: str = None,
+        audio_features_filename: str = None,
+        pca_components_filename: str = None,
+        correlation_windows_filename: str = None,
     ):
         load_dotenv()
         self.dataset_path = dataset_path
@@ -70,9 +70,11 @@ class GestureVisualizer:
         self._load_dataset_metadata()
         self._load_pose_data()
         self._preprocess_keypoints()
-        self._load_motion_audio()
-        self._load_pca()
-        self._normalize_features()
+        if self.motion_features_filename and self.audio_features_filename:
+            self._load_motion_audio()
+            self._normalize_features()
+        if self.pca_components_filename:
+            self._load_pca()
 
     def _load_dataset_metadata(self):
         metadata_file = os.path.join(self.dataset_path, "dataset_metadata.json")
@@ -89,25 +91,26 @@ class GestureVisualizer:
             keypoint_scores_file = os.path.join(
                 self.base_directory, instrument, "keypoint_scores.npy"
             )
-            correlation_windows_file = os.path.join(
-                self.base_directory,
-                instrument,
-                self.correlation_windows_filename,
-            )
             self.keypoints[instrument] = np.load(
                 keypoints_file, allow_pickle=True
             )
             self.keypoint_scores[instrument] = np.load(
                 keypoint_scores_file, allow_pickle=True
             )
-            if not os.path.exists(correlation_windows_file):
-                print(
-                    f"Warning: Correlation windows file not found for {instrument} in {self.base_directory}"
+            self.correlation_windows[instrument] = {}
+            if self.correlation_windows_filename:
+                correlation_windows_file = os.path.join(
+                    self.base_directory,
+                    instrument,
+                    self.correlation_windows_filename,
                 )
-                self.correlation_windows[instrument] = {}
-            else:
-                with open(correlation_windows_file) as f:
-                    self.correlation_windows[instrument] = json.load(f)
+                if os.path.exists(correlation_windows_file):
+                    with open(correlation_windows_file) as f:
+                        self.correlation_windows[instrument] = json.load(f)
+                else:
+                    print(
+                        f"Warning: Correlation windows file not found for {instrument} in {self.base_directory}"
+                    )
 
     def _fill_nan_frames(self, data_array: np.ndarray) -> np.ndarray:
         output_array = data_array.copy()
@@ -154,8 +157,6 @@ class GestureVisualizer:
                 self.audio_features[instrument] = json.load(f)
 
     def _load_pca(self):
-        self.pca_components = {}
-        self.pca_explained_variance = {}
         for instrument in self.instruments:
             pca_file = os.path.join(self.base_directory, instrument, self.pca_components_filename)
             with open(pca_file) as f:
@@ -218,6 +219,7 @@ class GestureVisualizer:
         start_time: float = 0,
         end_time: float = None,
         confidence_threshold: float = 5,
+        add_audio: bool = True,
     ):
         video_capture = cv2.VideoCapture(self.video_file)
         assert video_capture.isOpened(), "Cannot open video"
@@ -250,17 +252,18 @@ class GestureVisualizer:
                         ]
                         # find correlated parts
                         correlated_parts = []
-                        for body_part, types in self.correlation_windows[
-                            instrument
-                        ].items():
-                            for win_list in types.values():
-                                for window, value in win_list:
-                                    if (
-                                        window * frames_per_second
-                                        <= frame_index
-                                        < (window + 2) * frames_per_second
-                                    ):
-                                        correlated_parts.append((body_part, value))
+                        if self.correlation_windows[instrument]:
+                            for body_part, types in self.correlation_windows[
+                                instrument
+                            ].items():
+                                for win_list in types.values():
+                                    for window, value in win_list:
+                                        if (
+                                            window * frames_per_second
+                                            <= frame_index
+                                            < (window + 2) * frames_per_second
+                                        ):
+                                            correlated_parts.append((body_part, value))
                         # draw skeleton & features
                         self._draw_skeleton(
                             frame,
@@ -270,13 +273,18 @@ class GestureVisualizer:
                             correlated_parts,
                             confidence_threshold,
                         )
-                        self._draw_features(frame, instrument, frame_index)
+                        if self.motion_features_filename and self.audio_features_filename:
+                            self._draw_features(frame, instrument, frame_index)
                 video_writer.write(frame)
             frame_index += 1
         video_capture.release()
         video_writer.release()
-        self._add_audio(temp_video_file, output_file)
-        os.remove(temp_video_file)
+        if not add_audio:
+            print(f"→ saved {temp_video_file} without audio")
+            os.rename(temp_video_file, output_file)
+        else:
+            self._add_audio(temp_video_file, output_file, start_time, end_time)
+            os.remove(temp_video_file)
 
     def _draw_skeleton(
         self,
@@ -339,17 +347,21 @@ class GestureVisualizer:
                     frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2
                 )
 
-        contributions = self._get_keypoint_pca_contributions(instrument, occluded_keypoints)
+        if self.pca_components and instrument in self.pca_components:
+            contributions = self._get_keypoint_pca_contributions(instrument, occluded_keypoints)
+            max_contribution = max(c[1] for c in contributions) if contributions else 1
+            for i, (x, y) in enumerate(keypoints):
+                if keypoint_scores[i] > confidence_threshold and i not in occluded_keypoints:
+                    contribution_tuple = next((c for c in contributions if c[0] == i), None)
+                    contribution = contribution_tuple[1] if contribution_tuple else 0
 
-        max_contribution = max(c[1] for c in contributions) if contributions else 1
-        for i, (x, y) in enumerate(keypoints):
-            if keypoint_scores[i] > confidence_threshold and i not in occluded_keypoints:
-                contribution_tuple = next((c for c in contributions if c[0] == i), None)
-                contribution = contribution_tuple[1] if contribution_tuple else 0
-                
-                intensity = int(255 * (contribution / max_contribution)) if max_contribution > 0 else 255
-                color = (intensity, intensity, intensity)
-                cv2.circle(frame, (int(x), int(y)), 4, color, -1)
+                    intensity = int(255 * (contribution / max_contribution)) if max_contribution > 0 else 255
+                    color = (intensity, intensity, intensity)
+                    cv2.circle(frame, (int(x), int(y)), 4, color, -1)
+        else:
+            for i, (x, y) in enumerate(keypoints):
+                if keypoint_scores[i] > confidence_threshold and i not in occluded_keypoints:
+                    cv2.circle(frame, (int(x), int(y)), 4, (255, 255, 255), -1)
 
 
     def _draw_features(self, frame, instrument, frame_index):
@@ -385,14 +397,32 @@ class GestureVisualizer:
                 2,
             )
 
-    def _add_audio(self, temp_video_file, output_video_file):
+    def _add_audio(self, temp_video_file, output_video_file, start_time, end_time):
+        command = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            self.video_file,
+            "-ss",
+            str(start_time),
+            "-to",
+            str(end_time),
+            "-vn",
+            "-acodec",
+            "aac",
+            "-strict",
+            "experimental",
+            "temp_audio.aac",
+        ]
+        subprocess.run(command, check=True)
+
         command = [
             "ffmpeg",
             "-y",
             "-i",
             temp_video_file,
             "-i",
-            self.video_file,
+            "temp_audio.aac",
             "-c:v",
             "copy",
             "-c:a",
@@ -404,6 +434,7 @@ class GestureVisualizer:
             output_video_file,
         ]
         subprocess.run(command, check=True)
+        os.remove("temp_audio.aac")
         print(f"→ saved {output_video_file}")
 
     @staticmethod
@@ -448,29 +479,3 @@ class GestureVisualizer:
         }
 
 
-def main():
-    load_dotenv()
-    dataset_path = os.getenv("DATASET_PATH")
-    artist = "Ameya Karthikeyan"
-    song = "Jalajakshi"
-    gesture_visualizer = GestureVisualizer(
-        dataset_path=dataset_path,
-        artist=artist,
-        song=song,
-        instruments=["violin", "vocal", "mridangam"],
-        window_size=5,
-        motion_features_filename="motion_features.json",
-        audio_features_filename="audio_features.json",
-        pca_components_filename="pca_components.json",
-        correlation_windows_filename="00_correlation_05s_windows.json",
-    )
-    gesture_visualizer.visualize(
-        output_file=os.path.join(
-            dataset_path, artist, song, "visualized_latest_pca_occluded.mp4"
-        ),
-        confidence_threshold=3,
-    )
-
-
-if __name__ == "__main__":
-    main()
