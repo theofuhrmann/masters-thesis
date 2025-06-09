@@ -7,14 +7,12 @@ import torch
 from dotenv import load_dotenv
 
 NUMBER_OF_KEYPOINTS = 133
+CLUSTER_DISTANCE_THRESHOLD = 100
 
 class PoseEstimationPostProcessor:
-    def __init__(
-        self, dataset_path, instruments_left_to_right
-    ):
+    def __init__(self, dataset_path):
         load_dotenv()
         self.dataset_path = dataset_path
-        self.instruments = instruments_left_to_right
         # safe‐globals for torch.load
         torch.serialization.add_safe_globals([multiarray._reconstruct])
         _orig_load = torch.load
@@ -42,7 +40,7 @@ class PoseEstimationPostProcessor:
         for si, cx, cy in all_centers:
             placed = False
             for r in refs:
-                if np.hypot(cx - r["cx"], cy - r["cy"]) < 100:
+                if np.hypot(cx - r["cx"], cy - r["cy"]) < CLUSTER_DISTANCE_THRESHOLD:
                     # update avg
                     r["cx"] = (r["cx"] * r["count"] + cx) / (r["count"] + 1)
                     r["cy"] = (r["cy"] * r["count"] + cy) / (r["count"] + 1)
@@ -56,7 +54,7 @@ class PoseEstimationPostProcessor:
         centers = [(r["cx"], r["cy"]) for r in refs if r["count"] > min_count]
         return centers
 
-    def reorder_and_map(self, frames):
+    def reorder_and_map(self, frames, layout):
         """
         1) pick bottom-N by y
         2) reorder each frame to match
@@ -66,7 +64,7 @@ class PoseEstimationPostProcessor:
         centers = self.calculate_subject_centers(frames)
         # pick bottom num_instruments
         centers.sort(key=lambda c: c[1], reverse=True)
-        centers = centers[: len(self.instruments)]
+        centers = centers[: len(layout)]
         # map subject indices per frame
         reorganized = []
         for frame in frames:
@@ -84,7 +82,7 @@ class PoseEstimationPostProcessor:
         # assign instruments based on x‐order
         xs = [c[0] for c in centers]
         order = sorted(range(len(xs)), key=lambda i: xs[i])
-        subj2inst = {si: self.instruments[pos] for pos, si in enumerate(order)}
+        subj2inst = {si: layout[pos] for pos, si in enumerate(order)}
         # build dict of per-instrument time lists
         out = {"keypoints": {}, "keypoint_scores": {}}
         for si, inst in subj2inst.items():
@@ -148,10 +146,7 @@ class PoseEstimationPostProcessor:
                 song_dir = os.path.join(artist_dir, song)
 
                 song_metadata = self.metadata.get(artist, {}).get(song, {})
-                if song_metadata != {} and (
-                    len(song_metadata["layout"]) != len(self.instruments)
-                    or song_metadata["moving_camera"]
-                ):
+                if song_metadata != {} and song_metadata["moving_camera"]:
                     print(f"Skipping {artist}/{song}: {song_metadata}")
                     continue
 
@@ -159,8 +154,9 @@ class PoseEstimationPostProcessor:
                 if not os.path.isfile(pkl_file):
                     continue
 
+                layout = song_metadata["layout"]
                 skip = True
-                for inst in self.instruments:
+                for inst in layout:
                     inst_dir = os.path.join(song_dir, inst)
                     kps_file = os.path.join(inst_dir, "keypoints.npy")
                     scs_file = os.path.join(inst_dir, "keypoint_scores.npy")
@@ -175,7 +171,7 @@ class PoseEstimationPostProcessor:
 
                 print(f"\nProcessing {artist}/{song}")
                 frames = torch.load(pkl_file)
-                proc, centers = self.reorder_and_map(frames)
+                proc, centers = self.reorder_and_map(frames, layout)
                 print(" Reference centers:", centers)
                 # sanity‐check alignment
                 for inst in proc["keypoints"]:

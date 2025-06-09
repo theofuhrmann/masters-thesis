@@ -15,7 +15,9 @@ parser.add_argument('--pose', action='store_true', help='Run pose estimation')
 parser.add_argument('--post', action='store_true', help='Run post-processing')
 parser.add_argument('--artist', type=str, default=None, help='Filter by artist name')
 parser.add_argument('--song', type=str, default=None, help='Filter by song name')
-parser.add_argument('--force', type=bool, default=False, help='Force reprocessing of existing data')
+parser.add_argument(
+    "--force", action="store_true", help="Force reprocessing of existing data"
+)
 
 args = parser.parse_args()
 
@@ -32,11 +34,7 @@ if args.pose:
 if args.post:
     print("Post-processing dataset...")
     # define your left→right instruments here:
-    instruments = ["mridangam", "vocal", "violin"]
-    pepp = PoseEstimationPostProcessor(
-        dataset_path=dataset_path,
-        instruments_left_to_right=instruments
-    )
+    pepp = PoseEstimationPostProcessor(dataset_path=dataset_path)
     pepp.run(
         artist_filter=args.artist,
         song_filter=args.song,
