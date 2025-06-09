@@ -13,9 +13,19 @@ sys.path.insert(0, project_root)
 from tools.body_parts_map import body_parts_map  # noqa: E402
 
 
-def extract_audio_chunk(audio_path, start, duration, out_dir):
-    y, sr = librosa.load(audio_path, offset=start, duration=duration)
-    audio_out = os.path.join(out_dir, f"audio_{start:.1f}_{duration:.1f}.wav")
+def extract_audio_chunk(audio_path, start, duration, out_dir, instrument=None):
+    if instrument and instrument == "mridangam":
+        left_path = audio_path.replace("mridangam", "mridangam-left")
+        right_path = audio_path.replace("mridangam", "mridangam-right")
+        y_left, sr = librosa.load(left_path, offset=start, duration=duration)
+        y_right, _ = librosa.load(right_path, offset=start, duration=duration)
+        y = (y_left + y_right) / 2.0
+    else:
+        y, sr = librosa.load(audio_path, offset=start, duration=duration)
+    audio_out = os.path.join(
+        out_dir,
+        f"audio_{instrument + '_' if instrument else ''}{start:.1f}_{duration:.1f}.wav",
+    )
     sf.write(audio_out, y, sr)
 
 
@@ -79,21 +89,34 @@ def main():
     dataset_path = os.getenv("DATASET_PATH")
     fps = int(os.getenv("FPS"))
 
+    out_dir = os.path.join("chunks", args.artist, args.song)
+    os.makedirs(out_dir, exist_ok=True)
+
     audio_path = os.path.join(
         dataset_path, args.artist, args.song, f"{args.song}.wav"
     )
+
+    target_audio_path = os.path.join(
+        dataset_path,
+        args.artist,
+        args.song,
+        f"{args.song}.multitrack-{args.instrument}.wav",
+    )
+
+    extract_audio_chunk(audio_path, args.start, args.duration, out_dir)
+    extract_audio_chunk(
+        target_audio_path, args.start, args.duration, out_dir, args.instrument
+    )
+
     keypoints_path = os.path.join(
         dataset_path, args.artist, args.song, args.instrument, "keypoints.npy"
     )
 
-    out_dir = os.path.join("chunks", args.artist, args.song)
-    os.makedirs(out_dir, exist_ok=True)
-
-    extract_audio_chunk(audio_path, args.start, args.duration, out_dir)
     extract_face_body_pose_keypoints(
         keypoints_path, args.start, args.duration, fps, out_dir
     )
 
 
 if __name__ == "__main__":
+    main()
     main()
