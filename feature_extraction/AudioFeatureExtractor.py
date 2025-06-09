@@ -63,7 +63,10 @@ class AudioFeatureExtractor:
                 for inst in self.instruments:
                     try:
                         with open(
-                            os.path.join(song_dir, inst, "motion_features.json"), "r"
+                            os.path.join(
+                                song_dir, inst, "motion_features.json"
+                            ),
+                            "r",
                         ) as f:
                             motion_features = json.load(f)
                     except FileNotFoundError:
@@ -98,7 +101,9 @@ class AudioFeatureExtractor:
                     onset = librosa.onset.onset_strength(
                         y=y, sr=sr, hop_length=self.hop_length
                     )
-                    target_frames = len(motion_features["general"]["mean_speed"])
+                    target_frames = len(
+                        motion_features["general"]["mean_speed"]
+                    )
                     audio_features[artist][song][inst] = {
                         "rms": self._resample(rms, target_frames),
                         "onset_env": self._resample(onset, target_frames),

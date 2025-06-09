@@ -31,7 +31,9 @@ class PoseEstimator:
             device=device,
         )
 
-    def process_dataset(self, dataset_path, artist_filter=None, song_filter=None, force=False):
+    def process_dataset(
+        self, dataset_path, artist_filter=None, song_filter=None, force=False
+    ):
         for artist in os.listdir(dataset_path):
             if artist_filter and artist != artist_filter:
                 continue

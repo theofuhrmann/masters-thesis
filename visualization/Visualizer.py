@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -77,9 +78,13 @@ class GestureVisualizer:
             self._load_pca()
 
     def _load_dataset_metadata(self):
-        metadata_file = os.path.join(self.dataset_path, "dataset_metadata.json")
+        metadata_file = os.path.join(
+            self.dataset_path, "dataset_metadata.json"
+        )
         if not os.path.exists(metadata_file):
-            raise FileNotFoundError(f"Metadata file not found: {metadata_file}")
+            raise FileNotFoundError(
+                f"Metadata file not found: {metadata_file}"
+            )
         with open(metadata_file) as f:
             self.dataset_metadata = json.load(f)[self.artist][self.song]
 
@@ -158,23 +163,33 @@ class GestureVisualizer:
 
     def _load_pca(self):
         for instrument in self.instruments:
-            pca_file = os.path.join(self.base_directory, instrument, self.pca_components_filename)
+            pca_file = os.path.join(
+                self.base_directory, instrument, self.pca_components_filename
+            )
             with open(pca_file) as f:
                 pca_data = json.load(f)
             self.pca_components[instrument] = np.array(pca_data["components"])
-            self.pca_explained_variance[instrument] = np.array(pca_data["explained_variance_ratio"])
+            self.pca_explained_variance[instrument] = np.array(
+                pca_data["explained_variance_ratio"]
+            )
 
-    def _get_keypoint_pca_contributions(self, instrument, occluded_keypoints, top_n=None):
-        visible_keypoints = [i for i in list(range(133)) if i not in occluded_keypoints]
+    def _get_keypoint_pca_contributions(
+        self, instrument, occluded_keypoints, top_n=None
+    ):
+        visible_keypoints = [
+            i for i in list(range(133)) if i not in occluded_keypoints
+        ]
         top_component = self.pca_components[instrument][0]
         keypoint_importance = []
         for i in range(len(top_component) // 2):
             speed_component = top_component[i]
             acceleration_component = top_component[i + len(top_component) // 2]
-            contribution = np.sum(np.abs(speed_component + acceleration_component))
+            contribution = np.sum(
+                np.abs(speed_component + acceleration_component)
+            )
             original_kp_index = visible_keypoints[i]
             keypoint_importance.append((original_kp_index, contribution))
-        
+
         keypoint_importance.sort(key=lambda x: x[1], reverse=True)
         return keypoint_importance[:top_n] if top_n else keypoint_importance
 
@@ -263,7 +278,9 @@ class GestureVisualizer:
                                             <= frame_index
                                             < (window + 2) * frames_per_second
                                         ):
-                                            correlated_parts.append((body_part, value))
+                                            correlated_parts.append(
+                                                (body_part, value)
+                                            )
                         # draw skeleton & features
                         self._draw_skeleton(
                             frame,
@@ -273,7 +290,10 @@ class GestureVisualizer:
                             correlated_parts,
                             confidence_threshold,
                         )
-                        if self.motion_features_filename and self.audio_features_filename:
+                        if (
+                            self.motion_features_filename
+                            and self.audio_features_filename
+                        ):
                             self._draw_features(frame, instrument, frame_index)
                 video_writer.write(frame)
             frame_index += 1
@@ -281,8 +301,7 @@ class GestureVisualizer:
         video_writer.release()
         if not add_audio:
             print(f"→ saved {temp_video_file} without audio")
-            os.rename(temp_video_file, output_file)
-        else:
+            shutil.move(temp_video_file, output_file)
             self._add_audio(temp_video_file, output_file, start_time, end_time)
             os.remove(temp_video_file)
 
@@ -348,21 +367,38 @@ class GestureVisualizer:
                 )
 
         if self.pca_components and instrument in self.pca_components:
-            contributions = self._get_keypoint_pca_contributions(instrument, occluded_keypoints)
-            max_contribution = max(c[1] for c in contributions) if contributions else 1
+            contributions = self._get_keypoint_pca_contributions(
+                instrument, occluded_keypoints
+            )
+            max_contribution = (
+                max(c[1] for c in contributions) if contributions else 1
+            )
             for i, (x, y) in enumerate(keypoints):
-                if keypoint_scores[i] > confidence_threshold and i not in occluded_keypoints:
-                    contribution_tuple = next((c for c in contributions if c[0] == i), None)
-                    contribution = contribution_tuple[1] if contribution_tuple else 0
+                if (
+                    keypoint_scores[i] > confidence_threshold
+                    and i not in occluded_keypoints
+                ):
+                    contribution_tuple = next(
+                        (c for c in contributions if c[0] == i), None
+                    )
+                    contribution = (
+                        contribution_tuple[1] if contribution_tuple else 0
+                    )
 
-                    intensity = int(255 * (contribution / max_contribution)) if max_contribution > 0 else 255
+                    intensity = (
+                        int(255 * (contribution / max_contribution))
+                        if max_contribution > 0
+                        else 255
+                    )
                     color = (intensity, intensity, intensity)
                     cv2.circle(frame, (int(x), int(y)), 4, color, -1)
         else:
             for i, (x, y) in enumerate(keypoints):
-                if keypoint_scores[i] > confidence_threshold and i not in occluded_keypoints:
+                if (
+                    keypoint_scores[i] > confidence_threshold
+                    and i not in occluded_keypoints
+                ):
                     cv2.circle(frame, (int(x), int(y)), 4, (255, 255, 255), -1)
-
 
     def _draw_features(self, frame, instrument, frame_index):
         features = [
@@ -378,7 +414,9 @@ class GestureVisualizer:
                 text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2
             )
             x = 20 + (frame_width - 40 - text_width) * (instrument == "violin")
-            x = (frame_width // 2 - text_width // 2) * (instrument == "vocal") or x
+            x = (frame_width // 2 - text_width // 2) * (
+                instrument == "vocal"
+            ) or x
             y = frame_height - 20 - i * 30
             cv2.rectangle(
                 frame,
@@ -397,7 +435,9 @@ class GestureVisualizer:
                 2,
             )
 
-    def _add_audio(self, temp_video_file, output_video_file, start_time, end_time):
+    def _add_audio(
+        self, temp_video_file, output_video_file, start_time, end_time
+    ):
         command = [
             "ffmpeg",
             "-y",
@@ -457,17 +497,47 @@ class GestureVisualizer:
             (12, 14),
             (14, 16),
             # left hand
-            (91, 92), (92, 93), (93, 94), (94, 95),
-            (91, 96), (96, 97), (97, 98), (98, 99),
-            (91, 100), (100, 101), (101, 102), (102, 103),
-            (91, 104), (104, 105), (105, 106), (106, 107),
-            (91, 108), (108, 109), (109, 110), (110, 111),
+            (91, 92),
+            (92, 93),
+            (93, 94),
+            (94, 95),
+            (91, 96),
+            (96, 97),
+            (97, 98),
+            (98, 99),
+            (91, 100),
+            (100, 101),
+            (101, 102),
+            (102, 103),
+            (91, 104),
+            (104, 105),
+            (105, 106),
+            (106, 107),
+            (91, 108),
+            (108, 109),
+            (109, 110),
+            (110, 111),
             # right hand
-            (112, 113), (113, 114), (114, 115), (115, 116),
-            (112, 117), (117, 118), (118, 119), (119, 120),
-            (112, 121), (121, 122), (122, 123), (123, 124),
-            (112, 125), (125, 126), (126, 127), (127, 128),
-            (112, 129), (129, 130), (130, 131), (131, 132),
+            (112, 113),
+            (113, 114),
+            (114, 115),
+            (115, 116),
+            (112, 117),
+            (117, 118),
+            (118, 119),
+            (119, 120),
+            (112, 121),
+            (121, 122),
+            (122, 123),
+            (123, 124),
+            (112, 125),
+            (125, 126),
+            (126, 127),
+            (127, 128),
+            (112, 129),
+            (129, 130),
+            (130, 131),
+            (131, 132),
         ]
 
     @staticmethod
@@ -477,5 +547,3 @@ class GestureVisualizer:
             "violin": (255, 0, 0),
             "mridangam": (0, 0, 255),
         }
-
-

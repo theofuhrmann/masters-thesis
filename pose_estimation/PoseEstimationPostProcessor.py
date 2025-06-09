@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 NUMBER_OF_KEYPOINTS = 133
 CLUSTER_DISTANCE_THRESHOLD = 100
 
+
 class PoseEstimationPostProcessor:
     def __init__(self, dataset_path):
         load_dotenv()
@@ -40,7 +41,10 @@ class PoseEstimationPostProcessor:
         for si, cx, cy in all_centers:
             placed = False
             for r in refs:
-                if np.hypot(cx - r["cx"], cy - r["cy"]) < CLUSTER_DISTANCE_THRESHOLD:
+                if (
+                    np.hypot(cx - r["cx"], cy - r["cy"])
+                    < CLUSTER_DISTANCE_THRESHOLD
+                ):
                     # update avg
                     r["cx"] = (r["cx"] * r["count"] + cx) / (r["count"] + 1)
                     r["cy"] = (r["cy"] * r["count"] + cy) / (r["count"] + 1)
@@ -186,7 +190,11 @@ class PoseEstimationPostProcessor:
     def _save_numpy_for(self, artist, song, dtype, content):
         """Helper to save one song's outputs and avoid storing them."""
         base = os.path.join(self.dataset_path, artist, song)
-        shape = (NUMBER_OF_KEYPOINTS, 1) if dtype.endswith("scores") else (NUMBER_OF_KEYPOINTS, 2)
+        shape = (
+            (NUMBER_OF_KEYPOINTS, 1)
+            if dtype.endswith("scores")
+            else (NUMBER_OF_KEYPOINTS, 2)
+        )
         for inst, lst in content.items():
             arr = self.sanitize_nested_list(lst, shape)
             outf = os.path.join(base, inst, f"{dtype}.npy")

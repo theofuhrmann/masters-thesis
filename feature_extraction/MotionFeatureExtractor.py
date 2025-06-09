@@ -123,7 +123,9 @@ class MotionFeatureExtractor:
 
         return speed, acceleration_magnitude
 
-    def _summarize(self,speed: np.ndarray,accel: np.ndarray, body_parts_map: dict) -> dict:
+    def _summarize(
+        self, speed: np.ndarray, accel: np.ndarray, body_parts_map: dict
+    ) -> dict:
         summary = {
             "general": {
                 "mean_speed": np.nanmean(speed, axis=1).tolist(),
@@ -133,7 +135,9 @@ class MotionFeatureExtractor:
         for part, idxs in body_parts_map.items():
             summary[part] = {
                 "mean_speed": np.nanmean(speed[:, idxs], axis=1).tolist(),
-                "mean_acceleration": np.nanmean(accel[:, idxs], axis=1).tolist(),
+                "mean_acceleration": np.nanmean(
+                    accel[:, idxs], axis=1
+                ).tolist(),
             }
 
         return summary
@@ -161,7 +165,9 @@ class MotionFeatureExtractor:
                 continue
             print(f"Processing artist: {artist}")
             motion_features.setdefault(artist, {})
-            for song in tqdm(os.listdir(artist_dir), desc="Songs", leave=False):
+            for song in tqdm(
+                os.listdir(artist_dir), desc="Songs", leave=False
+            ):
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
@@ -172,16 +178,20 @@ class MotionFeatureExtractor:
                     if not os.path.isdir(inst_dir):
                         continue
                     try:
-                        keypoints = np.load(os.path.join(inst_dir, "keypoints.npy"))
+                        keypoints = np.load(
+                            os.path.join(inst_dir, "keypoints.npy")
+                        )
                         scores = np.load(
                             os.path.join(inst_dir, "keypoint_scores.npy")
                         )
                         metadata = self.dataset_metadata.get(artist, {}).get(
                             song, {}
                         )
-                        occluded_parts = self._get_occluded_parts(
-                                instrument, metadata
-                            ) if not ignore_occluded_parts else []
+                        occluded_parts = (
+                            self._get_occluded_parts(instrument, metadata)
+                            if not ignore_occluded_parts
+                            else []
+                        )
                         keypoints, scores, updated_body_parts_map = (
                             self._process_keypoints(
                                 keypoints, scores, occluded_parts
