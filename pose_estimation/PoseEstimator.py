@@ -31,19 +31,21 @@ class PoseEstimator:
             device=device,
         )
 
-    def process_dataset(self, dataset_path, avoid_artists=None):
-        avoid = set(avoid_artists or [])
+    def process_dataset(self, dataset_path, artist_filter=None, song_filter=None, force=False):
         for artist in os.listdir(dataset_path):
-            if artist in avoid:
+            if artist_filter and artist != artist_filter:
                 continue
+            artist_path = os.path.join(dataset_path, artist)
             print(f"Processing {artist}")
-            for song in os.listdir(os.path.join(dataset_path, artist)):
+            for song in os.listdir(artist_path):
+                if song_filter and song != song_filter:
+                    continue
                 song_dir = os.path.join(dataset_path, artist, song)
                 video = self._find_video(song_dir)
                 already_processed = os.path.exists(
                     os.path.join(song_dir, "pose_estimation.pkl")
                 )
-                if already_processed:
+                if already_processed and not force:
                     print(f" → already processed {song}")
                     continue
                 if video:

@@ -13,19 +13,32 @@ checkpoint_file = "../../thesis/mmpose/rtmw-x_simcc-cocktail14_pt-ucoco_270e-384
 parser = argparse.ArgumentParser(description='Run pose estimation and/or post-processing.')
 parser.add_argument('--pose', action='store_true', help='Run pose estimation')
 parser.add_argument('--post', action='store_true', help='Run post-processing')
+parser.add_argument('--artist', type=str, default=None, help='Filter by artist name')
+parser.add_argument('--song', type=str, default=None, help='Filter by song name')
+parser.add_argument('--force', type=bool, default=False, help='Force reprocessing of existing data')
 
 args = parser.parse_args()
-
-avoid_artists = ["Abhiram Bode", "Aditi Prahalad", "Ameya Karthikeyan"]
 
 if args.pose:
     print("Processing dataset...")
     estimator = PoseEstimator(config_file, checkpoint_file, device="cuda:0")
-    estimator.process_dataset(dataset_path, avoid_artists=avoid_artists)
+    estimator.process_dataset(
+        dataset_path=dataset_path,
+        artist_filter=args.artist,
+        song_filter=args.song,
+        force=args.force
+    )
 
 if args.post:
     print("Post-processing dataset...")
     # define your left→right instruments here:
     instruments = ["mridangam", "vocal", "violin"]
-    pepp = PoseEstimationPostProcessor(dataset_path, instruments)
-    pepp.run()
+    pepp = PoseEstimationPostProcessor(
+        dataset_path=dataset_path,
+        instruments_left_to_right=instruments
+    )
+    pepp.run(
+        artist_filter=args.artist,
+        song_filter=args.song,
+        force=args.force
+    )

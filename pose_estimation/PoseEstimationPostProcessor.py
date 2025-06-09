@@ -6,15 +6,15 @@ import numpy.core.multiarray as multiarray
 import torch
 from dotenv import load_dotenv
 
+NUMBER_OF_KEYPOINTS = 133
 
 class PoseEstimationPostProcessor:
     def __init__(
-        self, dataset_path, instruments_left_to_right, artist_filter=None
+        self, dataset_path, instruments_left_to_right
     ):
         load_dotenv()
         self.dataset_path = dataset_path
         self.instruments = instruments_left_to_right
-        self.artist_filter = artist_filter
         # safe‐globals for torch.load
         torch.serialization.add_safe_globals([multiarray._reconstruct])
         _orig_load = torch.load
@@ -58,7 +58,7 @@ class PoseEstimationPostProcessor:
 
     def reorder_and_map(self, frames):
         """
-        1) pick bottom-3 by y
+        1) pick bottom-N by y
         2) reorder each frame to match
         3) map subject-idx→instrument by x left→right
         returns (consistent_dict, centers)
@@ -131,18 +131,20 @@ class PoseEstimationPostProcessor:
         else:
             print(" ✅ None aligned")
 
-    def run(self):
+    def run(self, artist_filter=None, song_filter=None, force=False):
         """
         Process each song end-to-end before moving on,
         to avoid loading everything into memory at once.
         """
         for artist in os.listdir(self.dataset_path):
-            if self.artist_filter and artist != self.artist_filter:
+            if artist_filter and artist != artist_filter:
                 continue
             artist_dir = os.path.join(self.dataset_path, artist)
             if not os.path.isdir(artist_dir):
                 continue
             for song in os.listdir(artist_dir):
+                if song_filter and song != song_filter:
+                    continue
                 song_dir = os.path.join(artist_dir, song)
 
                 song_metadata = self.metadata.get(artist, {}).get(song, {})
@@ -167,22 +169,20 @@ class PoseEstimationPostProcessor:
                     ):
                         skip = False
                         break
-                if skip:
+                if skip and not force:
                     print(f"Skipping {artist}/{song} (already processed)")
                     continue
 
                 print(f"\nProcessing {artist}/{song}")
-                # load only this song's frames into memory
                 frames = torch.load(pkl_file)
                 proc, centers = self.reorder_and_map(frames)
                 print(" Reference centers:", centers)
                 # sanity‐check alignment
                 for inst in proc["keypoints"]:
-                    print(f"Checking {inst}")
                     self.check_none_alignment(
                         proc["keypoints"][inst], proc["keypoint_scores"][inst]
                     )
-                # save results immediately, then free memory
+
                 for dtype, content in proc.items():
                     self._save_numpy_for(artist, song, dtype, content)
                 del frames, proc
@@ -190,7 +190,7 @@ class PoseEstimationPostProcessor:
     def _save_numpy_for(self, artist, song, dtype, content):
         """Helper to save one song's outputs and avoid storing them."""
         base = os.path.join(self.dataset_path, artist, song)
-        shape = (133, 1) if dtype.endswith("scores") else (133, 2)
+        shape = (NUMBER_OF_KEYPOINTS, 1) if dtype.endswith("scores") else (NUMBER_OF_KEYPOINTS, 2)
         for inst, lst in content.items():
             arr = self.sanitize_nested_list(lst, shape)
             outf = os.path.join(base, inst, f"{dtype}.npy")
