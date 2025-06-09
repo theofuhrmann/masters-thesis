@@ -153,7 +153,7 @@ def compute_strong_windows(
     motion_features,
     audio_features,
     dataset_path,
-    fps=30,
+    fps,
     win_dur=0.5,
     step_dur=0.1,
     thresh=0.75,
@@ -212,6 +212,7 @@ def main():
     args = parse_args()
     load_dotenv()
     path = os.getenv("DATASET_PATH")
+    fps = int(os.getenv("FPS", 30))
     local_correlation_threshold = 0.0
     window_duration = 0.5
     motion_features, audio_features = load_features(
@@ -221,6 +222,7 @@ def main():
         motion_features,
         audio_features,
         path,
+        fps,
         win_dur=window_duration,
         thresh=local_correlation_threshold,
     )

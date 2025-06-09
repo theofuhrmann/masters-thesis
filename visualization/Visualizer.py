@@ -14,6 +14,9 @@ sys.path.insert(0, project_root)
 from tools.body_parts_map import body_parts_map  # noqa: E402
 from tools.utils import smooth_keypoints  # noqa: E402
 
+INSTRUMENTS = ["vocal", "violin", "mridangam"]
+NUMBER_OF_KEYPOINTS = 133
+
 
 class GestureVisualizer:
     def __init__(
@@ -34,7 +37,7 @@ class GestureVisualizer:
         self.dataset_path = dataset_path
         self.artist = artist
         self.song = song
-        self.instruments = instruments
+        self.instruments = [i for i in instruments if i in INSTRUMENTS]
         self.motion_features_filename = motion_features_filename
         self.audio_features_filename = audio_features_filename
         self.pca_components_filename = pca_components_filename
@@ -177,7 +180,9 @@ class GestureVisualizer:
         self, instrument, occluded_keypoints, top_n=None
     ):
         visible_keypoints = [
-            i for i in list(range(133)) if i not in occluded_keypoints
+            i
+            for i in list(range(NUMBER_OF_KEYPOINTS))
+            if i not in occluded_keypoints
         ]
         top_component = self.pca_components[instrument][0]
         keypoint_importance = []

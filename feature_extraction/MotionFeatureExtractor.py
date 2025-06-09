@@ -20,7 +20,6 @@ class MotionFeatureExtractor:
         dataset_dir: str,
         instruments: list,
         artist_filter: str = None,
-        fps: int = 30,
         conf_threshold: float = 5.0,
         smooth_win: int = 5,
         smooth_poly: int = 2,
@@ -32,7 +31,7 @@ class MotionFeatureExtractor:
         self.dataset_dir = dataset_dir
         self.instruments = instruments
         self.artist_filter = artist_filter
-        self.fps = fps
+        self.fps = int(os.getenv("FPS", 30))
         self.conf_threshold = conf_threshold
         self.smooth_win = smooth_win
         self.smooth_poly = smooth_poly

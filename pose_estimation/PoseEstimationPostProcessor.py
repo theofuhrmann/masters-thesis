@@ -161,7 +161,7 @@ class PoseEstimationPostProcessor:
                 layout = song_metadata["layout"]
                 skip = True
                 for inst in layout:
-                    inst_dir = os.path.join(song_dir, inst)
+                    inst_dir = os.path.join(song_dir, str(inst))
                     kps_file = os.path.join(inst_dir, "keypoints.npy")
                     scs_file = os.path.join(inst_dir, "keypoint_scores.npy")
                     if not (
@@ -197,7 +197,7 @@ class PoseEstimationPostProcessor:
         )
         for inst, lst in content.items():
             arr = self.sanitize_nested_list(lst, shape)
-            outf = os.path.join(base, inst, f"{dtype}.npy")
+            outf = os.path.join(base, str(inst), f"{dtype}.npy")
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             np.save(outf, arr)
             print(f" → saved {outf}")

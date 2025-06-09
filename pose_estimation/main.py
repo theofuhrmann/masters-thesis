@@ -39,7 +39,6 @@ if args.pose:
 
 if args.post:
     print("Post-processing dataset...")
-    # define your left→right instruments here:
     pepp = PoseEstimationPostProcessor(dataset_path=dataset_path)
     pepp.run(
         artist_filter=args.artist, song_filter=args.song, force=args.force
