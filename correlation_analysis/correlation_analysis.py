@@ -15,6 +15,11 @@ def parse_args():
     parser.add_argument(
         "--song", type=str, help="Name of the song to process (requires --artist)"
     )
+    parser.add_argument(
+        "--save_strong_windows",
+        action="store_true",
+        help="Save strong correlation windows to disk",
+    )
     args = parser.parse_args()
     if args.song and not args.artist:
         parser.error("--song requires --artist")
@@ -56,6 +61,8 @@ def load_features(dataset_path, artist_filter=None, song_filter=None):
                         motion_features[artist][song][instr] = json.load(f)
                     with open(os.path.join(inst_dir, "audio_features.json")) as f:
                         audio_features[artist][song][instr] = json.load(f)
+
+                    print(f"Loaded features for {artist}/{song}/{instr}")
                 except FileNotFoundError:
                     print(f"Missing feature files for {artist}/{song}/{instr}, skipping")
     return motion_features, audio_features
@@ -113,39 +120,43 @@ def sliding_correlation(signal1, signal2, window_size, step_size, threshold):
     ]
 
 
-def compute_strong_windows(motion_features, audio_features,
+def compute_strong_windows(motion_features, audio_features, dataset_path,
                            fps=30, win_dur=0.5, step_dur=0.1, thresh=0.75):
     win = int(win_dur * fps)
     step = int(step_dur * fps)
-    strong = {}
 
-    for A in motion_features:
-        strong.setdefault(A, {})
-        for S in motion_features[A]:
-            strong[A].setdefault(S, {})
+    for A in tqdm(motion_features, desc="Artists"):
+        for S in tqdm(motion_features[A], desc="Songs", leave=False):
             for instr in motion_features[A][S]:
-                strong[A][S].setdefault(instr, {})
+                file_name = f"{str(thresh).replace('.', '')}_correlation_{str(win_dur).replace('.', '')}s_windows.json"
+                output_dir = os.path.join(dataset_path, A, S, instr)
+                output_path = os.path.join(output_dir, file_name)
+                if os.path.exists(output_path):
+                    print(f"Strong windows already computed for {A}/{S}/{instr}, skipping")
+                    continue
+                strong_subset = {}
                 for part in motion_features[A][S][instr]:
                     y = audio_features[A][S][instr]["onset_env"]
                     x_sp = motion_features[A][S][instr][part]["mean_speed"]
                     speed_strong_windows = sliding_correlation(x_sp, y, win, step, thresh)
                     x_ac = motion_features[A][S][instr][part]["mean_acceleration"]
                     acceleration_strong_windows = sliding_correlation(x_ac, y, win, step, thresh)
-                    strong[A][S][instr][part] = {"speed": speed_strong_windows,
+                    strong_subset[part] = {"speed": speed_strong_windows,
                                                  "accel": acceleration_strong_windows}
-    return strong
+                with open(output_path, "w") as f:
+                    json.dump(strong_subset, f, indent=4)
+                print(f"Saved strong windows for {A}/{S}/{instr} to {output_path}")
 
 
-def save_strong_windows(strong_windows, dataset_path, corr_thresh=0.75, win_dur=0.5):
+def compute_number_of_strong_windows(strong_windows):
+    num_windows = 0
     for A in strong_windows:
         for S in strong_windows[A]:
             for instr in strong_windows[A][S]:
-                out_dir = os.path.join(dataset_path, A, S, instr)
-                os.makedirs(out_dir, exist_ok=True)
-                file_name = f"{str(corr_thresh).replace('.', '')}_correlation_{str(win_dur).replace('.', '')}s_windows.json"
-                out_file = os.path.join(out_dir, file_name)
-                with open(out_file, "w") as f:
-                    json.dump(strong_windows[A][S][instr], f, indent=4)
+                for part in strong_windows[A][S][instr]:
+                    num_windows += len(strong_windows[A][S][instr][part]["speed"]) + \
+                                   len(strong_windows[A][S][instr][part]["accel"])
+    return num_windows
 
 
 def main():
@@ -155,13 +166,7 @@ def main():
     local_correlation_threshold = 0.0
     window_duration = 0.5
     motion_features, audio_features = load_features(path, args.artist, args.song)
-    """
-    sp_corr, ac_corr = compute_global_correlations(motion_features, audio_features)
-    print("Speed Correlations:", sp_corr)
-    print("Acceleration Correlations:", ac_corr)
-    """
-    strong_win = compute_strong_windows(motion_features, audio_features, win_dur=window_duration, thresh=local_correlation_threshold)
-    save_strong_windows(strong_win, path, corr_thresh=local_correlation_threshold, win_dur=window_duration)
+    compute_strong_windows(motion_features, audio_features, path, win_dur=window_duration, thresh=local_correlation_threshold)
 
 if __name__ == "__main__":
     main()
