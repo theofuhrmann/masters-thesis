@@ -93,17 +93,25 @@ class GestureVisualizer:
 
     def _load_pose_data(self):
         for instrument in self.instruments:
-            keypoints_file = os.path.join(
+            body_keypoints_file = os.path.join(
                 self.base_directory, instrument, "keypoints.npy"
             )
-            keypoint_scores_file = os.path.join(
+            body_keypoint_scores_file = os.path.join(
                 self.base_directory, instrument, "keypoint_scores.npy"
             )
-            self.keypoints[instrument] = np.load(
-                keypoints_file, allow_pickle=True
-            )
+            self.keypoints[instrument] = {
+                "body": np.load(body_keypoints_file, allow_pickle=True),
+            }
+            if instrument == "vocal":
+                face_keypoints_file = os.path.join(
+                    self.base_directory, instrument, "face_keypoints.npy"
+                )
+                self.keypoints[instrument]["face"] = np.load(
+                    face_keypoints_file, allow_pickle=True
+                ).transpose((0, 2, 1))
+
             self.keypoint_scores[instrument] = np.load(
-                keypoint_scores_file, allow_pickle=True
+                body_keypoint_scores_file, allow_pickle=True
             )
             self.correlation_windows[instrument] = {}
             if self.correlation_windows_filename:
@@ -142,14 +150,27 @@ class GestureVisualizer:
 
     def _preprocess_keypoints(self):
         for instrument in self.instruments:
-            raw_keypoints = self.keypoints[instrument]
-            filled_keypoints = self._fill_nan_frames(raw_keypoints)
-            self.keypoints[instrument] = smooth_keypoints(
-                keypoints=filled_keypoints,
+            raw_body_keypoints = self.keypoints[instrument]["body"]
+            filled_body_keypoints = self._fill_nan_frames(raw_body_keypoints)
+            self.keypoints[instrument]["body"] = smooth_keypoints(
+                keypoints=filled_body_keypoints,
                 smooth_poly=self.smoothing_poly_order,
                 smooth_win=self.window_size,
                 mode=self.smoothing_mode,
             )
+            """
+            if instrument == "vocal":
+                raw_face_keypoints = self.keypoints[instrument]["face"]
+                filled_face_keypoints = self._fill_nan_frames(
+                    raw_face_keypoints
+                )
+                self.keypoints[instrument]["face"] = smooth_keypoints(
+                    keypoints=filled_face_keypoints,
+                    smooth_poly=self.smoothing_poly_order,
+                    smooth_win=self.window_size,
+                    mode=self.smoothing_mode,
+                )
+            """
 
     def _load_motion_audio(self):
         for instrument in self.instruments:
@@ -265,11 +286,18 @@ class GestureVisualizer:
                 break
             if frame_index >= start_frame:
                 for instrument in self.instruments:
-                    if frame_index < len(self.keypoints[instrument]):
-                        keypoints = self.keypoints[instrument][frame_index]
-                        keypoint_scores = self.keypoint_scores[instrument][
+                    if frame_index < len(self.keypoints[instrument]["body"]):
+                        body_keypoints = self.keypoints[instrument]["body"][
                             frame_index
                         ]
+                        body_keypoint_scores = self.keypoint_scores[
+                            instrument
+                        ][frame_index]
+                        face_keypoints = (
+                            self.keypoints[instrument]["face"][frame_index]
+                            if instrument == "vocal"
+                            else None
+                        )
                         # find correlated parts
                         correlated_parts = []
                         if self.correlation_windows[instrument]:
@@ -289,9 +317,10 @@ class GestureVisualizer:
                         # draw skeleton & features
                         self._draw_skeleton(
                             frame,
-                            keypoints,
-                            keypoint_scores,
+                            body_keypoints,
+                            body_keypoint_scores,
                             instrument,
+                            face_keypoints,
                             correlated_parts,
                             confidence_threshold,
                         )
@@ -304,24 +333,29 @@ class GestureVisualizer:
             frame_index += 1
         video_capture.release()
         video_writer.release()
-        if not add_audio:
-            print(f"→ saved {temp_video_file} without audio")
-            shutil.move(temp_video_file, output_file)
+
+        if add_audio:
             self._add_audio(temp_video_file, output_file, start_time, end_time)
             os.remove(temp_video_file)
+        else:
+            shutil.move(temp_video_file, output_file)
 
     def _draw_skeleton(
         self,
         frame,
-        keypoints,
-        keypoint_scores,
+        body_keypoints,
+        body_keypoint_scores,
         instrument,
+        face_keypoints=None,
         correlated_parts=None,
         confidence_threshold=5,
         show_lower_body=False,
         show_occluded_parts=False,
     ):
         occluded_keypoints = []
+        occluded_keypoints.extend(body_parts_map["face"])
+        occluded_keypoints.extend(body_parts_map["head"])
+
         if not show_lower_body:
             occluded_keypoints.extend(body_parts_map["left_leg"])
             occluded_keypoints.extend(body_parts_map["right_leg"])
@@ -337,13 +371,13 @@ class GestureVisualizer:
 
         for skeleton_start, skeleton_end in self._skeleton():
             if (
-                keypoint_scores[skeleton_start] > confidence_threshold
-                and keypoint_scores[skeleton_end] > confidence_threshold
+                body_keypoint_scores[skeleton_start] > confidence_threshold
+                and body_keypoint_scores[skeleton_end] > confidence_threshold
                 and skeleton_start not in occluded_keypoints
                 and skeleton_end not in occluded_keypoints
             ):
-                x1, y1 = keypoints[skeleton_start]
-                x2, y2 = keypoints[skeleton_end]
+                x1, y1 = body_keypoints[skeleton_start]
+                x2, y2 = body_keypoints[skeleton_end]
                 correlation_value = 0
                 if correlated_parts:
                     for part, value in correlated_parts:
@@ -355,7 +389,6 @@ class GestureVisualizer:
                             break
 
                 base_color = self._colors()[instrument]
-                # Adjust color based on correlation_value (0 to 1)
                 b, g, r = base_color
                 if correlation_value > 0:
                     b = int(min(b + (255 - b) * correlation_value, 255))
@@ -378,9 +411,9 @@ class GestureVisualizer:
             max_contribution = (
                 max(c[1] for c in contributions) if contributions else 1
             )
-            for i, (x, y) in enumerate(keypoints):
+            for i, (x, y) in enumerate(body_keypoints):
                 if (
-                    keypoint_scores[i] > confidence_threshold
+                    body_keypoint_scores[i] > confidence_threshold
                     and i not in occluded_keypoints
                 ):
                     contribution_tuple = next(
@@ -398,12 +431,16 @@ class GestureVisualizer:
                     color = (intensity, intensity, intensity)
                     cv2.circle(frame, (int(x), int(y)), 4, color, -1)
         else:
-            for i, (x, y) in enumerate(keypoints):
+            for i, (x, y) in enumerate(body_keypoints):
                 if (
-                    keypoint_scores[i] > confidence_threshold
+                    body_keypoint_scores[i] > confidence_threshold
                     and i not in occluded_keypoints
                 ):
                     cv2.circle(frame, (int(x), int(y)), 4, (255, 255, 255), -1)
+
+        if instrument == "vocal" and face_keypoints is not None:
+            for i, (x, y, _) in enumerate(face_keypoints):
+                cv2.circle(frame, (int(x), int(y)), 4, (0, 0, 0), -1)
 
     def _draw_features(self, frame, instrument, frame_index):
         features = [
