@@ -29,23 +29,51 @@ def extract_audio_chunk(audio_path, start, duration, out_dir, instrument=None):
     sf.write(audio_out, y, sr)
 
 
-def extract_face_body_pose_keypoints(
-    keypoints_path, start, duration, fps, out_path
+def extract_face_pose_keypoints(
+    keypoints_path,
+    start,
+    duration,
+    fps,
+    out_path,
 ):
     keypoints = np.load(keypoints_path)
+
+    start_frame = int(start * fps)
+    end_frame = int((start + duration) * fps)
+    if end_frame > len(keypoints):
+        end_frame = len(keypoints)
+
+    np.save(
+        os.path.join(
+            out_path, f"keypoints_face_{start:.1f}_{duration:.1f}.npy"
+        ),
+        keypoints[start_frame:end_frame],
+    )
+
+
+def extract_body_pose_keypoints(
+    keypoints_path,
+    start,
+    duration,
+    fps,
+    out_path,
+):
+    keypoints = np.load(keypoints_path)
+    keypoints = np.transpose(keypoints, (0, 2, 1))
     body_parts_to_remove = [
         "left_leg",
         "right_leg",
         "left_foot",
         "right_foot",
-        "head",
+        "face",
     ]
-    face_keypoints = keypoints[:, body_parts_map["face"], :]
 
     keypoints_to_remove = []
     for part in body_parts_to_remove:
         keypoints_to_remove.extend(body_parts_map[part])
-    body_keypoints = np.delete(keypoints, keypoints_to_remove, axis=1)
+
+    keypoints_to_remove = [i for i in keypoints_to_remove if i not in [11, 12]]
+    body_keypoints = np.delete(keypoints, keypoints_to_remove, axis=2)
 
     start_frame = int(start * fps)
     end_frame = int((start + duration) * fps)
@@ -57,12 +85,6 @@ def extract_face_body_pose_keypoints(
             out_path, f"keypoints_body_{start:.1f}_{duration:.1f}.npy"
         ),
         body_keypoints[start_frame:end_frame],
-    )
-    np.save(
-        os.path.join(
-            out_path, f"keypoints_face_{start:.1f}_{duration:.1f}.npy"
-        ),
-        face_keypoints[start_frame:end_frame],
     )
 
 
@@ -112,11 +134,22 @@ def main():
         dataset_path, args.artist, args.song, args.instrument, "keypoints.npy"
     )
 
-    extract_face_body_pose_keypoints(
+    extract_body_pose_keypoints(
         keypoints_path, args.start, args.duration, fps, out_dir
     )
 
+    if args.instrument == "vocal":
+        keypoints_path = os.path.join(
+            dataset_path,
+            args.artist,
+            args.song,
+            args.instrument,
+            "face_keypoints.npy",
+        )
+        extract_face_pose_keypoints(
+            keypoints_path, args.start, args.duration, fps, out_dir
+        )
+
 
 if __name__ == "__main__":
-    main()
     main()
