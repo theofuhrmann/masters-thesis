@@ -31,7 +31,6 @@ class MotionFeatureExtractor:
         self.dataset_dir = dataset_dir
         self.instruments = instruments
         self.artist_filter = artist_filter
-        self.fps = int(os.getenv("FPS", 30))
         self.conf_threshold = conf_threshold
         self.smooth_win = smooth_win
         self.smooth_poly = smooth_poly
@@ -97,7 +96,7 @@ class MotionFeatureExtractor:
         return keypoints, scores, updated_body_parts_map
 
     def _compute_speed_and_acceleration(
-        self, keypoints: np.ndarray, scores: np.ndarray
+        self, keypoints: np.ndarray, scores: np.ndarray, fps: float
     ) -> tuple[np.ndarray, np.ndarray]:
         # mask low-confidence
         mask = scores < self.conf_threshold
@@ -106,14 +105,14 @@ class MotionFeatureExtractor:
         keypoints[mask] = np.nan
 
         # Compute velocity and acceleration using np.gradient
-        velocity = np.gradient(keypoints, axis=0) * self.fps
+        velocity = np.gradient(keypoints, axis=0) * fps
         speed = np.where(
             np.isnan(velocity).any(axis=2),
             np.nan,
             np.linalg.norm(velocity, axis=-1),
         )
 
-        acceleration = np.gradient(velocity, axis=0) * self.fps
+        acceleration = np.gradient(velocity, axis=0) * fps
         acceleration_magnitude = np.where(
             np.isnan(acceleration).any(axis=2),
             np.nan,
@@ -198,7 +197,9 @@ class MotionFeatureExtractor:
                         )
                         speed, acceleration = (
                             self._compute_speed_and_acceleration(
-                                keypoints, scores
+                                keypoints,
+                                scores,
+                                self.dataset_metadata[artist][song]["fps"],
                             )
                         )
                         summary = self._summarize(
