@@ -19,7 +19,7 @@ parser.add_argument(
 parser.add_argument(
     "--confidence_threshold",
     type=float,
-    default=5.0,
+    default=3.0,
     help="Confidence threshold for motion feature extraction",
 )
 parser.add_argument(
@@ -36,7 +36,7 @@ if args.extract in ["motion", "both"]:
         instruments=instruments,
         conf_threshold=args.confidence_threshold,
         motion_output_filename="motion_features_occluded.json",
-        pca_output_filename="pca_components_occluded.json",
+        pca_output_filename=None,
     )
     motion_extractor.extract(ignore_occluded_parts=args.ignore_occluded_parts)
 

@@ -25,7 +25,7 @@ class MotionFeatureExtractor:
         smooth_poly: int = 2,
         pca_components: int = 3,
         motion_output_filename: str = "motion_features.json",
-        pca_output_filename: str = "pca_components.json",
+        pca_output_filename: str = None,
     ):
         load_dotenv()
         self.dataset_dir = dataset_dir
@@ -213,21 +213,22 @@ class MotionFeatureExtractor:
                         )
                         motion_features[artist][song][instrument] = {}
                     try:
-                        motion_features_framewise = np.concatenate(
-                            [speed, acceleration], axis=1
-                        )
-                        pca_components = self.compute_pca(
-                            motion_features_framewise
-                        )
-                        pca_output_path = os.path.join(
-                            self.dataset_dir,
-                            artist,
-                            song,
-                            instrument,
-                            self.pca_output_filename,
-                        )
-                        with open(pca_output_path, "w") as f:
-                            json.dump(pca_components, f, indent=4)
+                        if self.pca_output_filename is not None:
+                            motion_features_framewise = np.concatenate(
+                                [speed, acceleration], axis=1
+                            )
+                            pca_components = self.compute_pca(
+                                motion_features_framewise
+                            )
+                            pca_output_path = os.path.join(
+                                self.dataset_dir,
+                                artist,
+                                song,
+                                instrument,
+                                self.pca_output_filename,
+                            )
+                            with open(pca_output_path, "w") as f:
+                                json.dump(pca_components, f, indent=4)
                     except Exception as e:
                         print(f"PCA error {artist}/{song}/{instrument}: {e}")
 
