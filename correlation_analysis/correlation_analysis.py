@@ -153,16 +153,27 @@ def compute_strong_windows(
     motion_features,
     audio_features,
     dataset_path,
-    fps,
     win_dur=0.5,
     step_dur=0.1,
     thresh=0.75,
 ):
-    win = int(win_dur * fps)
-    step = int(step_dur * fps)
+    with open(
+        os.path.join(dataset_path, "dataset_metadata.json"), "r"
+    ) as f:
+        dataset_metadata = json.load(f)
 
     for A in tqdm(motion_features, desc="Artists"):
         for S in tqdm(motion_features[A], desc="Songs", leave=False):
+            print(f"Processing {A}/{S}")
+            if dataset_metadata[A][S].get("fps", None) is not None:
+                fps = dataset_metadata[A][S]["fps"]
+            else:
+                print(f"Skipping {A}/{S} due to faulty video")
+                continue
+
+            win = int(win_dur * fps)
+            step = int(step_dur * fps)
+
             for instr in motion_features[A][S]:
                 file_name = f"{str(thresh).replace('.', '')}_correlation_{str(win_dur).replace('.', '')}s_windows.json"
                 output_dir = os.path.join(dataset_path, A, S, instr)
@@ -212,20 +223,20 @@ def main():
     args = parse_args()
     load_dotenv()
     path = os.getenv("DATASET_PATH")
-    fps = int(os.getenv("FPS", 30))
-    local_correlation_threshold = 0.0
+    local_correlation_threshold = 0.5
     window_duration = 0.5
+    window_step = 0.1
     motion_features, audio_features = load_features(
         path, args.artist, args.song
     )
     compute_strong_windows(
-        motion_features,
-        audio_features,
-        path,
-        fps,
-        win_dur=window_duration,
-        thresh=local_correlation_threshold,
-    )
+            motion_features,
+            audio_features,
+            path,
+            win_dur=window_duration,
+            step_dur=window_step,
+            thresh=local_correlation_threshold,
+        )
 
 
 if __name__ == "__main__":
