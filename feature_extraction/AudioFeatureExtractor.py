@@ -61,13 +61,14 @@ class AudioFeatureExtractor:
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
-                if os.path.exists(
-                    os.path.join(song_dir, "audio_features.json")
-                ):
-                    print(f"Skipping {artist}/{song}: already processed.")
-                    continue
                 audio_features[artist].setdefault(song, {})
                 for inst in self.instruments:
+                    inst_dir = os.path.join(song_dir, inst)
+                    if os.path.exists(
+                        os.path.join(inst_dir, "audio_features.json")
+                    ):
+                        print(f"Skipping {artist}/{song}/{inst}: already processed.")
+                        continue
                     try:
                         with open(
                             os.path.join(

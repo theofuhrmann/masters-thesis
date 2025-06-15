@@ -30,8 +30,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+motion_output_filename = "motion_features.json" if not args.ignore_occluded_parts else "motion_features_occluded.json"
+
 if args.extract in ["motion", "both"]:
-    motion_output_filename = "motion_features.json" if not args.ignore_occluded_parts else "motion_features_occluded.json"
     motion_extractor = MotionFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,

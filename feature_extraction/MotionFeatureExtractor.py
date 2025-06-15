@@ -173,7 +173,12 @@ class MotionFeatureExtractor:
                 motion_features[artist].setdefault(song, {})
                 for instrument in self.instruments:
                     inst_dir = os.path.join(song_dir, instrument)
-                    if not os.path.isdir(inst_dir):
+                    if not os.path.isdir(inst_dir) or os.path.exists(
+                        os.path.join(inst_dir, self.output_filename)
+                    ):
+                        print(
+                            f"Skipping {artist}/{song}/{instrument}: already processed."
+                        )
                         continue
                     try:
                         keypoints = np.load(
