@@ -31,17 +31,18 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.extract in ["motion", "both"]:
+    motion_output_filename = "motion_features.json" if not args.ignore_occluded_parts else "motion_features_occluded.json"
     motion_extractor = MotionFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,
         conf_threshold=args.confidence_threshold,
-        motion_output_filename="motion_features_occluded.json",
+        motion_output_filename=motion_output_filename,
         pca_output_filename=None,
     )
     motion_extractor.extract(ignore_occluded_parts=args.ignore_occluded_parts)
 
 if args.extract in ["audio", "both"]:
     audio_extractor = AudioFeatureExtractor(
-        dataset_dir=ds, instruments=instruments
+        dataset_dir=ds, instruments=instruments, motion_output_filename=motion_output_filename
     )
     audio_extractor.extract()

@@ -13,6 +13,7 @@ class AudioFeatureExtractor:
         self,
         dataset_dir: str,
         instruments: list,
+        motion_output_filename: str,
         artist_filter: str = None,
         sr: int = 48000,
         hop_length: int = 1024,
@@ -20,6 +21,7 @@ class AudioFeatureExtractor:
         load_dotenv()
         self.dataset_dir = dataset_dir
         self.instruments = instruments
+        self.motion_output_filename = motion_output_filename
         self.artist_filter = artist_filter
         self.sr = sr
         self.hop_length = hop_length
@@ -59,12 +61,17 @@ class AudioFeatureExtractor:
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
+                if os.path.exists(
+                    os.path.join(song_dir, "audio_features.json")
+                ):
+                    print(f"Skipping {artist}/{song}: already processed.")
+                    continue
                 audio_features[artist].setdefault(song, {})
                 for inst in self.instruments:
                     try:
                         with open(
                             os.path.join(
-                                song_dir, inst, "motion_features.json"
+                                song_dir, inst, self.motion_output_filename
                             ),
                             "r",
                         ) as f:
