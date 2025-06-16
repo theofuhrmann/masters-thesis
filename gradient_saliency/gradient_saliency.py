@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-vovit_path = os.path.abspath(os.getenv("DATASET_PATH"))
+vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
 sys.path.insert(0, vovit_path)
 
 from vovit import VoViT_b, VoViT_f, VoViT_fb  # type: ignore # noqa: E402
@@ -19,19 +19,19 @@ from vovit.display.dataloaders_new import (  # noqa: E402 # type: ignore
 )
 
 AUDIO_RATE = 16384
-DEVICE = "cpu"  # Change to "cuda" if you have a GPU and want to use it
-DURATION = 4.0  # Duration of the audio segment to analyze
+DEVICE = "cpu" if not torch.cuda.is_available() else "cuda"
+DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
-DATASET_METADATA = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
+DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
 
 
 def gradient_saliency(dataset, sample, device="cpu"):
     if dataset.model_type == ModelType.FACE:
-        model = VoViT_f(pretrained=True, debug={}).to(device)
+        model = VoViT_f(pretrained=True, debug={})
     elif dataset.model_type == ModelType.BODY:
-        model = VoViT_b(pretrained=True, debug={}).to(device)
+        model = VoViT_b(pretrained=True, debug={})
     elif dataset.model_type == ModelType.BODY_FACE:
-        model = VoViT_fb(pretrained=True, debug={}).to(device)
+        model = VoViT_fb(pretrained=True, debug={})
     else:
         raise ValueError("Unsupported model type")
 
@@ -40,15 +40,10 @@ def gradient_saliency(dataset, sample, device="cpu"):
 
     (mix, face, body), target = dataset[0]
 
-    # add batch dim, cutoff to 65535, cast
-    mix = mix.unsqueeze(0).float()[:, :65535].to(device)
-    target = target.unsqueeze(0).float()[:, :65535].to(device)
-    face = (
-        face.unsqueeze(0).float().requires_grad_(True).to(device)
-    )  # raw [1,T,3,68]
-    body = (
-        body.unsqueeze(0).float().requires_grad_(True).to(device)
-    )  # raw [1,T,3,55]
+    mix = mix.unsqueeze(0).float()
+    target = target.unsqueeze(0).float()
+    face = face.unsqueeze(0).float().requires_grad_(True)
+    body = body.unsqueeze(0).float().requires_grad_(True)
 
     # run the official forward (4s only)
     if isinstance(model, VoViT_f):
@@ -90,12 +85,18 @@ def main(args):
         chunk_duration=DURATION,
         model_type=ModelType.BODY_FACE,
         audio_type=AudioType.VOCAL,
-        metadata=DATASET_METADATA,
+        metadata_path=DATASET_METADATA_PATH,
     )
 
     # pick a chunk
     sample = (args.artist, args.song)
-    gradient_saliency(dataset, sample, DEVICE)
+    face_idx, face_imp, body_idx, body_imp = gradient_saliency(dataset, sample, DEVICE)
+    print(f"Face landmarks: {args.artist} - {args.song}")
+    for i in range(10):
+        print(f"  {i+1:2d}: {face_idx[i]:3d} ({face_imp[i]})")
+    print(f"Body landmarks: {args.artist} - {args.song}")
+    for i in range(10):
+        print(f"  {i+1:2d}: {body_idx[i]:3d} ({body_imp[i]})")
 
 
 if __name__ == "__main__":
