@@ -6,6 +6,11 @@ import torch
 import torch.nn.functional as F
 from dotenv import load_dotenv
 
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
+
+from tools.body_parts_map import keypoint_map
+
 load_dotenv()
 
 vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
@@ -19,7 +24,7 @@ from vovit.display.dataloaders_new import (  # noqa: E402 # type: ignore
 )
 
 AUDIO_RATE = 16384
-DEVICE = "cpu" if not torch.cuda.is_available() else "cuda"
+DEVICE = "cpu" # if not torch.cuda.is_available() else "cuda"
 DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
 DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
@@ -27,23 +32,25 @@ DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
 
 def gradient_saliency(dataset, sample, device="cpu"):
     if dataset.model_type == ModelType.FACE:
-        model = VoViT_f(pretrained=True, debug={})
+        model = VoViT_f(pretrained=True, debug={}).to(device)
     elif dataset.model_type == ModelType.BODY:
-        model = VoViT_b(pretrained=True, debug={})
+        model = VoViT_b(pretrained=True, debug={}).to(device)
     elif dataset.model_type == ModelType.BODY_FACE:
-        model = VoViT_fb(pretrained=True, debug={})
+        model = VoViT_fb(pretrained=True, debug={}).to(device)
     else:
         raise ValueError("Unsupported model type")
 
     model.eval()
     model.zero_grad()
 
+    torch.cuda.empty_cache()
+
     (mix, face, body), target = dataset[0]
 
-    mix = mix.unsqueeze(0).float()
-    target = target.unsqueeze(0).float()
-    face = face.unsqueeze(0).float().requires_grad_(True)
-    body = body.unsqueeze(0).float().requires_grad_(True)
+    mix = mix.unsqueeze(0).float().requires_grad_(True).to(device)
+    target = target.unsqueeze(0).float().to(device)
+    face = face.unsqueeze(0).float().requires_grad_(True).to(device)
+    body = body.unsqueeze(0).float().requires_grad_(True).to(device)
 
     # run the official forward (4s only)
     if isinstance(model, VoViT_f):
@@ -65,16 +72,19 @@ def gradient_saliency(dataset, sample, device="cpu"):
     # compute saliency: average abs‐grad over batch/time/coords
     face_sal = face.grad.abs().mean(dim=(0, 1, 2))  # → [68]
     body_sal = body.grad.abs().mean(dim=(0, 1, 2))  # → [55]
+    mix_sal = mix.grad.abs().mean(dim=(0, 1))  # → [1]
 
     # print top‐10
     face_imp, face_idx = torch.sort(face_sal, descending=True)
     body_imp, body_idx = torch.sort(body_sal, descending=True)
+    mix_imp, _ = torch.sort(mix_sal, descending=True)
 
     return (
         face_idx.tolist(),
         face_imp.tolist(),
         body_idx.tolist(),
         body_imp.tolist(),
+        mix_imp.tolist(),
     )
 
 
@@ -90,13 +100,15 @@ def main(args):
 
     # pick a chunk
     sample = (args.artist, args.song)
-    face_idx, face_imp, body_idx, body_imp = gradient_saliency(dataset, sample, DEVICE)
-    print(f"Face landmarks: {args.artist} - {args.song}")
+    face_idx, face_imp, body_idx, body_imp, mix_imp = gradient_saliency(dataset, sample, DEVICE)
+    print(f"Face landmarks:")
     for i in range(10):
-        print(f"  {i+1:2d}: {face_idx[i]:3d} ({face_imp[i]})")
-    print(f"Body landmarks: {args.artist} - {args.song}")
+        print(f"  {i+1:2d}: {keypoint_map[face_idx[i] + 23]} ({face_imp[i]})")
+    print(f"Body landmarks:")
     for i in range(10):
-        print(f"  {i+1:2d}: {body_idx[i]:3d} ({body_imp[i]})")
+        print(f"  {i+1:2d}: {keypoint_map[body_idx[i]]} ({body_imp[i]})")
+
+    print(f"Mix importance: {mix_imp}")
 
 
 if __name__ == "__main__":
