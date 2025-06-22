@@ -27,15 +27,22 @@ parser.add_argument(
     action="store_true",
     help="Ignore occluded body parts during motion feature extraction",
 )
+parser.add_argument(
+    "--artist",
+    type=str,
+    default=None,
+    help="Filter by artist name",
+)
 
 args = parser.parse_args()
 
-motion_output_filename = "motion_features.json" if not args.ignore_occluded_parts else "motion_features_occluded.json"
+motion_output_filename = "motion_features_normalized.json" if not args.ignore_occluded_parts else "motion_features_normalized_occluded.json"
 
 if args.extract in ["motion", "both"]:
     motion_extractor = MotionFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,
+        artist_filter=args.artist,
         conf_threshold=args.confidence_threshold,
         motion_output_filename=motion_output_filename,
         pca_output_filename=None,
@@ -44,6 +51,6 @@ if args.extract in ["motion", "both"]:
 
 if args.extract in ["audio", "both"]:
     audio_extractor = AudioFeatureExtractor(
-        dataset_dir=ds, instruments=instruments, motion_output_filename=motion_output_filename
+        dataset_dir=ds, instruments=instruments, motion_output_filename=motion_output_filename, artist_filter=args.artist
     )
     audio_extractor.extract()

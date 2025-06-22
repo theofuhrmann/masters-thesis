@@ -11,7 +11,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 from tools.body_parts_map import body_parts_map  # noqa: E402
-from tools.utils import smooth_keypoints  # noqa: E402
+from tools.utils import smooth_keypoints, normalize_keypoints  # noqa: E402
 
 
 class MotionFeatureExtractor:
@@ -82,6 +82,13 @@ class MotionFeatureExtractor:
             ]
             if new_indices:
                 updated_body_parts_map[part] = new_indices
+
+        # Normalize keypoints before deleting undesired parts to center 
+        # them around the body centroid
+        keypoints = normalize_keypoints(
+            keypoints,
+            scale_factor=1.0
+        )
 
         # Delete keypoints and scores
         keypoints = np.delete(keypoints, keypoints_to_remove, axis=1)
@@ -173,12 +180,10 @@ class MotionFeatureExtractor:
                 motion_features[artist].setdefault(song, {})
                 for instrument in self.instruments:
                     inst_dir = os.path.join(song_dir, instrument)
-                    if not os.path.isdir(inst_dir) or os.path.exists(
-                        os.path.join(inst_dir, self.output_filename)
-                    ):
-                        print(
-                            f"Skipping {artist}/{song}/{instrument}: already processed."
-                        )
+                    if not os.path.isdir(inst_dir):
+                        continue
+                    if os.path.exists(os.path.join(inst_dir, self.output_filename)):
+                        print(f"Skipping {artist}/{song}/{instrument}: already processed.")
                         continue
                     try:
                         keypoints = np.load(
@@ -192,7 +197,7 @@ class MotionFeatureExtractor:
                         )
                         occluded_parts = (
                             self._get_occluded_parts(instrument, metadata)
-                            if not ignore_occluded_parts
+                            if ignore_occluded_parts
                             else []
                         )
                         keypoints, scores, updated_body_parts_map = (
