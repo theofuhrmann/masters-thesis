@@ -7,6 +7,8 @@ import sys
 import cv2
 import numpy as np
 from dotenv import load_dotenv
+from tqdm import tqdm
+
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
@@ -268,6 +270,7 @@ class GestureVisualizer:
         frame_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         total_frames = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        pbar = tqdm(total=total_frames, desc="Processing frames")
         end_time = end_time or (total_frames / frames_per_second)
         start_frame = int(start_time * frames_per_second)
         end_frame = int(end_time * frames_per_second)
@@ -331,6 +334,9 @@ class GestureVisualizer:
                             self._draw_features(frame, instrument, frame_index)
                 video_writer.write(frame)
             frame_index += 1
+            pbar.update(1)
+            
+        pbar.close()
         video_capture.release()
         video_writer.release()
 

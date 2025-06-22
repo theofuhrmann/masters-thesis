@@ -8,6 +8,7 @@ from Visualizer import GestureVisualizer
 
 load_dotenv()
 dataset_path = os.getenv("DATASET_PATH")
+instruments = os.getenv("INSTRUMENTS").split(",")
 
 parser = argparse.ArgumentParser(
     description="Run gesture visualization on dataset."
@@ -29,6 +30,8 @@ parser.add_argument(
     type=float,
     default=20.0,
     help="End time for visualization in seconds",
+    nargs='?',
+    const=None,
 )
 parser.add_argument(
     "--add_audio", action="store_true", help="Add audio to the visualization"
@@ -44,6 +47,16 @@ args = parser.parse_args()
 metadata_file = os.path.join(dataset_path, "dataset_metadata.json")
 with open(metadata_file, "r") as f:
     dataset_metadata = json.load(f)
+
+for artist, songs in list(dataset_metadata.items()):
+    for song in list(songs.keys()):
+        if dataset_metadata[artist][song]["layout"] != instruments:
+            del dataset_metadata[artist][song]
+
+for artist, songs in list(dataset_metadata.items()):
+    if artist in dataset_metadata:
+        if len(dataset_metadata[artist]) == 0:
+            del dataset_metadata[artist]
 
 for artist, songs in tqdm(sorted(dataset_metadata.items())):
     if args.artist and artist != args.artist:
