@@ -1,0 +1,2386 @@
+{
+    "Abhiram Bode": {
+        "Devi Pavane": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2599.0333333333333
+        },
+        "Entha Bhagyamu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 375.03333333333336
+        },
+        "Kalaye": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 240.36666666666667
+        },
+        "Lekanna ninnu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 462.3333333333333
+        },
+        "Nadatina": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 879.0333333333333
+        }
+    },
+    "Abhishek Ravi Shankar": {
+        "Brindavanam Idhuvo": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 191.0
+        },
+        "Kamakshi Varlakshmi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1906.0333333333333
+        },
+        "Manasa Etulo": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 1914.0666666666666
+        },
+        "Palaya Sada": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 367.03333333333336
+        },
+        "Sami Ninne": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 302.3
+        },
+        "Tappagane Vachunna": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        }
+    },
+    "Aditi Prahalad": {
+        "Ananda Natana Prakasham": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 757.3
+        },
+        "Jalajasha Ninne": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.991790942673415,
+            "duration": 243.63333333333335
+        },
+        "Kangali": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.998473204743245,
+            "duration": 654.9666666666666
+        },
+        "Nannu Brova": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.995953874165487,
+            "duration": 494.3
+        },
+        "Parama Pavana Rama": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.999255573890494,
+            "duration": 2686.633333333333
+        },
+        "Phanipati Shayi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.99210422424003,
+            "duration": 253.3
+        },
+        "Yake Kadekanninda": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.99463341085073,
+            "duration": 326.0916666666667
+        }
+    },
+    "Aditya Narayanan": {
+        "Chittam Irangadhe": {
+            "layout": [
+                "violin",
+                "tanpura",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 1633.0333333333333
+        },
+        "Koluvamaragada": {
+            "layout": [
+                "violin",
+                "tanpura",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 2695.0333333333333
+        },
+        "Sarasaksha Palaya": {
+            "layout": [
+                "violin",
+                "tanpura",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 905.4
+        }
+    },
+    "Ameya Karthikeyan": {
+        "Intha Sowkya": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 445.93333333333334
+        },
+        "Iyal Isaiyil": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 191.63333333333333
+        },
+        "Jalajakshi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 40.833333333333336
+        },
+        "Saraguna Palimpa": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2276.0333333333333
+        },
+        "Yochana Kamala": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 631.1666666666666
+        },
+        "iniyagilum ninai": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        }
+    },
+    "Anjanathirumalai": {
+        "Amboruha Padame": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 300.03333333333336
+        },
+        "Durusuga Kripa": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1844.0333333333333
+        },
+        "Jaya Jaya": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 535.0333333333333
+        },
+        "Marivere Dikkevaru": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1549.0333333333333
+        },
+        "Nirajakshi Kamakshi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 371.0
+        },
+        "Pullum Silambine": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 259.03333333333336
+        },
+        "Sujana Jeevana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 348.03333333333336
+        },
+        "Thillana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 291.0
+        }
+    },
+    "Archana Murali": {
+        "Ee Vasudha": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1456.0333333333333
+        },
+        "Enthani Vina": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 252.03333333333333
+        },
+        "Janani Ninnuvina": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2514.5666666666666
+        },
+        "Sanchalam Theertharul": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 435.6333333333333
+        },
+        "Thillana": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 562.0
+        }
+    },
+    "Ashok Subramaniaym": {
+        "Arunachala Ramana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 185.03333333333333
+        },
+        "Emouma VInavi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 134.03333333333333
+        },
+        "Eru Malai": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 59.03333333333333
+        },
+        "Haath Ke Murali": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 285.0
+        },
+        "Mamava Meenakshi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1618.0333333333333
+        },
+        "Muddu Momu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1022.0333333333333
+        },
+        "Peiyaval Kaan": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 150.03333333333333
+        },
+        "Raa raa": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 2219.0333333333333
+        },
+        "Shakti Ganapathim": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 396.03333333333336
+        },
+        "Sharavana Bhava": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 333.03333333333336
+        },
+        "Vanajaksha Ninne": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 285.0
+        }
+    },
+    "Ashwin Srikanth": {
+        "Idhudhano Thillai Sthalam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 385.0
+        },
+        "Nekkurugi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 955.0416666666666
+        },
+        "Ninne Nammitinayya": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 2418.0
+        },
+        "Notru Suvargam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 214.0
+        },
+        "Okabari Judaga": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 484.0
+        }
+    },
+    "Bhargavi Chandrasekar": {
+        "Anjaneya Raghurama": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2046.7666666666667
+        },
+        "Challare Rmachandru": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 161.53333333333333
+        },
+        "Muladhara Kshetra": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 260.7
+        },
+        "Navaragamalika Varnam": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 263.46666666666664
+        },
+        "Sri Kantimatim": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1499.6
+        },
+        "Thillai Ambalathanai": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 320.03333333333336
+        },
+        "Thillana": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 274.03333333333336
+        },
+        "Vara Narada": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 173.6
+        }
+    },
+    "Brinda Manickavasagan": {
+        "Bhavanuta": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Muripemu": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 3390.4
+        },
+        "Ranganayakam": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.99870275879962,
+            "duration": 1541.7333333333333
+        },
+        "Satre Vilagi": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 29.998348199537496,
+            "duration": 605.4
+        },
+        "Valapu Thala": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 503.06666666666666
+        }
+    },
+    "Chandan Bala": {
+        "Lambodharaya Namaste": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 733.0333333333333
+        },
+        "Marakoti Lavanya": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 1851.0333333333333
+        },
+        "Mari vere dikkevaru": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 652.0333333333333
+        },
+        "Sogasu Chuda": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 201.5
+        },
+        "Swara Raga Sudha": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2828.0333333333333
+        },
+        "Vanajakshi Ninne": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 389.23333333333335
+        },
+        "Viruttam and Neenyako ninna": {
+            "layout": [
+                "violin",
+                "vocal",
+                "ghatam",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 364.1
+        }
+    },
+    "Hamzini": {
+        "Chandra Chooda": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 599.0333333333333
+        },
+        "Giri Raja Suta": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 195.03333333333333
+        },
+        "Kalanidathanugadhe": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 164.03333333333333
+        },
+        "Kanindharul Purindhal": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 726.9
+        },
+        "Paradevata": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2672.0333333333333
+        },
+        "Tamasinchu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 360.03333333333336
+        },
+        "Thillana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 202.0
+        }
+    },
+    "Hari Kishan": {
+        "Eti Janmamidhi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1787.0333333333333
+        },
+        "Govardhana Giridhara": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 443.96666666666664
+        },
+        "Raga Ratnamalikache": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 683.0333333333333
+        }
+    },
+    "Kruthi Bhat": {
+        "Aada Hodalle": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 363.26666666666665
+        },
+        "Amba Vani": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1781.6666666666667
+        },
+        "Aparadhamula": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 400.03333333333336
+        },
+        "Arunachala Natham": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 446.53333333333336
+        },
+        "Ragam Thanam Pallavi": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 3264.6
+        },
+        "Thillana": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        }
+    },
+    "Manickam Yogeswaran": {
+        "Karanam Ketu Vaadi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 272.03333333333336
+        },
+        "Kula Bhirudunu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 343.03333333333336
+        },
+        "Samayamidhe": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 500.03333333333336
+        },
+        "Saravana Bhavana Samayamidhi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 336.03333333333336
+        },
+        "Shri Lamboradharaya Namaste": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 360.03333333333336
+        },
+        "Sivanai Ninaindhidu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 315.03333333333336
+        },
+        "Thamadam En Swami": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2323.0333333333333
+        },
+        "Thillana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 371.96666666666664
+        }
+    },
+    "Mukund Bharadwaj": {
+        "Cetah Shri Balakrishnam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 637.0333333333333
+        },
+        "Devi Pavane": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2897.0333333333333
+        },
+        "Ka Vaa Vaa": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1371.0333333333333
+        },
+        "Thillana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 181.0
+        },
+        "Valachi Vachi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 295.93333333333334
+        }
+    },
+    "Niranjan Dindodi": {
+        "Angikkenadapadi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 237.0
+        },
+        "Mayamma": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 492.3
+        },
+        "Nada Tanumanisham": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 413.2
+        },
+        "Narasimha Aagacha": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2076.0333333333333
+        },
+        "Paripurna Kama": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1371.0333333333333
+        },
+        "Venkata": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 209.03333333333333
+        }
+    },
+    "Prithivi Harish": {
+        "Alasara Parithapam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 357.0
+        },
+        "Karpaga Manohara": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 558.0416666666666
+        },
+        "Kasi Visalakshim": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 2031.0416666666667
+        },
+        "Mokshamu Galada": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 1189.0
+        },
+        "Seethapati": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 317.0416666666667
+        },
+        "Shantamu Lekha": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 24.0,
+            "duration": 673.0416666666666
+        }
+    },
+    "Raghav Krishna": {
+        "Gananayakam": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Karunai Deivame": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 223.0
+        },
+        "Nava Loka Nayike": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 635.6
+        },
+        "Rama Nee Samana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1501.6
+        },
+        "Rama Rama Gunaseema": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1132.3666666666666
+        },
+        "Sakala Graha Bala": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 273.0
+        },
+        "Santatam Banda": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 106.6
+        },
+        "Siva Siva Ena": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 958.7
+        }
+    },
+    "Ramya Kiranmayi": {
+        "Nanda Nandana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 198.0
+        },
+        "Nee Irangayenil": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 320.03333333333336
+        },
+        "Neevera Kula": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Parama Purusha": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 790.8
+        },
+        "Shanmukhapriva": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Shri Gurunapalitosmi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 206.03333333333333
+        }
+    },
+    "Sahana": {
+        "Amba Nilambari": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 372.03333333333336
+        },
+        "Kaa Vaa Vaa": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1135.0333333333333
+        },
+        "Naneke Badavanu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 498.03333333333336
+        },
+        "Pakkala Nilabadi": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2337.0333333333333
+        },
+        "Ramachandram Bhavayami": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 432.06666666666666
+        },
+        "Vanga Kadal": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 114.1
+        }
+    },
+    "Sampadgodu Vighnaraja": {
+        "Ardharekhe Idhalli": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 382.03333333333336
+        },
+        "Endhuku Nirdhaya": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 2950.0333333333333
+        },
+        "Hiranmayeem Lakshmim": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 736.0333333333333
+        },
+        "Karuna Ela Gante": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 681.2
+        },
+        "Ninnada Nele": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 296.03333333333336
+        },
+        "Yeradiru Yeradiru": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 295.96666666666664
+        }
+    },
+    "Sandhya Ramaswamy": {
+        "Aadi Kondar": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 255.66666666666666
+        },
+        "Chaliye Kunjan": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 316.8666666666667
+        },
+        "Gati Neeye": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2840.0333333333333
+        },
+        "Kandrin Kuralai": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 865.7333333333333
+        },
+        "Korina Vara": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 562.0666666666667
+        },
+        "Mahaganapathim Bhajeham": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 305.03333333333336
+        }
+    },
+    "Sanjay Swaminathan": {
+        "Ayye Metthakadinam": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 236.0
+        },
+        "Ganapate Mahamate": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 453.8666666666667
+        },
+        "Nannu Brova": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1228.0333333333333
+        },
+        "Rama Niyeda": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2767.0666666666666
+        },
+        "Vachamagocharame": {
+            "layout": [
+                "mridangam",
+                "tanpura",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 241.56666666666666
+        }
+    },
+    "Shradda Ganesh": {
+        "Irakkam Varamal": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 419.3333333333333
+        },
+        "Mamavathu Saraswati": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 973.0
+        },
+        "Meenakshi Memudam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2153.9666666666667
+        },
+        "Ninaikadha Neramillai": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 306.0
+        },
+        "Sangeetha Gnanamu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 332.0
+        },
+        "Vande Devadeva": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 395.1333333333333
+        },
+        "Vidajaladura": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 186.03333333333333
+        }
+    },
+    "Shruthi Bhat": {
+        "Moogu Sannadhu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 380.53333333333336
+        },
+        "Nanda Balam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 282.03333333333336
+        },
+        "Raksha Bettare": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Sri Rama Ika Nannu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1694.0333333333333
+        },
+        "Tamasa Miga": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 445.43333333333334
+        }
+    },
+    "Sivani": {
+        "Evarani": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 361.0
+        },
+        "Garuda Gamana": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 201.03333333333333
+        },
+        "Jaya Jaya": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 384.93333333333334
+        },
+        "Kurai Ondrum Illai": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 242.83333333333334
+        },
+        "Parandhamavati Jayati": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 760.0333333333333
+        },
+        "Parvati Ninnu ne": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 158.03333333333333
+        },
+        "Sharanagatha Raksha": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 235.03333333333333
+        },
+        "Sri VIshwanatham Bhaje": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1801.0
+        }
+    },
+    "Srividya Vadnamali": {
+        "Entha Modi": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 247.03333333333333
+        },
+        "Ganaamudha panam": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 1789.0333333333333
+        },
+        "Parama Prusham": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 310.03333333333336
+        },
+        "Raju Vedale": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1416.0333333333333
+        },
+        "Thillana": {
+            "layout": [
+                "violin",
+                "vocal",
+                "mridangam"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 363.0
+        }
+    },
+    "Surya Prakash": {
+        "Guruvayurappa": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 340.56666666666666
+        },
+        "Jootamu Rare": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 997.4
+        },
+        "Krishna Nanda Mukunda": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 617.0666666666667
+        },
+        "Manavyalakinchara": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 461.03333333333336
+        },
+        "Shri Parthasarathy": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 516.2333333333333
+        },
+        "Sri Satyanarayanam": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 2892.0
+        },
+        "Thillana": {
+            "layout": [
+                "mridangam",
+                null,
+                "morsing",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 522.0
+        }
+    },
+    "Swarathmika": {
+        "Aparadhamula Norva": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 961.0333333333333
+        },
+        "Lambodharam Avalambe": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 345.03333333333336
+        },
+        "Meenakshi Memudam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2242.0333333333333
+        },
+        "Muruganin Marupeyar": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 305.0
+        },
+        "Samagana Lole": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1095.0333333333333
+        },
+        "Sivakama Sundari": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 205.03333333333333
+        }
+    },
+    "Vaibhav Ramu": {
+        "Akshaya Linga Vibho": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Nirada Sama": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 330.03333333333336
+        },
+        "Omkara Rupa": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 176.53333333333333
+        },
+        "Santana Gopalam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 311.03333333333336
+        },
+        "Sivakama Sundari": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1166.0333333333333
+        },
+        "Venkata Ramanan": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 240.96666666666667
+        }
+    },
+    "Vidya Kalyanaraman": {
+        "Aparadhumula": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1139.0333333333333
+        },
+        "Irakkam Varamal": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 474.03333333333336
+        },
+        "Om Namashivaya": {
+            "layout": null,
+            "moving_camera": false,
+            "fps": null,
+            "duration": null
+        },
+        "Pakkala Nilabadi": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": true,
+            "fps": 30.0,
+            "duration": 3250.0333333333333
+        },
+        "Pavamana Suthu": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 110.9
+        },
+        "Sami Ninne": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 305.03333333333336
+        },
+        "Thillana": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 256.1
+        },
+        "Vara Narada": {
+            "layout": [
+                "mridangam",
+                "ghatam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 204.06666666666666
+        }
+    },
+    "Vishruthi Girish": {
+        "Amboruha Padame": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 291.03333333333336
+        },
+        "Ennalu urake": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1631.0333333333333
+        },
+        "Kalai Thooki": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 345.8
+        },
+        "Karunai Deivama": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 231.96666666666667
+        },
+        "Nadupai palikeru": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 599.0333333333333
+        },
+        "Nambi Ketavar": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 247.36666666666667
+        },
+        "Satatam Tavaka": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "tanpura",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2209.0333333333333
+        }
+    },
+    "Vivek Mozhikulam": {
+        "Kannan Endradhume": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 239.0
+        },
+        "Karthikeya Gangeya": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2412.0333333333333
+        },
+        "Nenaruchinanu": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 316.03333333333336
+        },
+        "Sammodam Chintayami": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 990.0333333333333
+        },
+        "Sarasuda": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 352.3333333333333
+        },
+        "Sri Ramam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 409.03333333333336
+        },
+        "Varana Mukha": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 443.03333333333336
+        }
+    },
+    "Yoga Keerthana": {
+        "Andavan Dharisanam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 153.0
+        },
+        "Margazhi Thingal": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 417.03333333333336
+        },
+        "Nannu Brova": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 2085.0333333333333
+        },
+        "Nee Daya Galgute": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 1561.0333333333333
+        },
+        "Soundararajam": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 516.0333333333333
+        },
+        "Tamasincha": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 244.03333333333333
+        },
+        "Triloka Mata": {
+            "layout": [
+                "mridangam",
+                "vocal",
+                "violin"
+            ],
+            "moving_camera": false,
+            "fps": 30.0,
+            "duration": 202.03333333333333
+        }
+    }
+}
