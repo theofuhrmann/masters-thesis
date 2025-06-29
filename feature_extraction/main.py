@@ -1,9 +1,10 @@
 import argparse
 import os
 
-from AudioFeatureExtractor import AudioFeatureExtractor
+from audio.AudioFeatureExtractor import AudioFeatureExtractor
 from dotenv import load_dotenv
-from MotionFeatureExtractor import MotionFeatureExtractor
+from motion.GeneralMotionFeatureExtractor import GeneralMotionFeatureExtractor
+from motion.ViolinMotionFeatureExtractor import ViolinMotionFeatureExtractor
 
 load_dotenv()
 ds = os.getenv("DATASET_PATH")
@@ -12,23 +13,27 @@ instruments = ["vocal", "mridangam", "violin"]
 parser = argparse.ArgumentParser(description="Feature extraction script")
 parser.add_argument(
     "--extract",
-    choices=["motion", "audio", "both"],
+    "-e",
+    choices=["motion", "audio", "both", "motion-violin"],
     default="both",
     help="Specify which extraction to perform: motion, audio, or both",
 )
 parser.add_argument(
     "--confidence_threshold",
+    "-ct",
     type=float,
     default=3.0,
     help="Confidence threshold for motion feature extraction",
 )
 parser.add_argument(
     "--ignore_occluded_parts",
+    "-i",
     action="store_true",
     help="Ignore occluded body parts during motion feature extraction",
 )
 parser.add_argument(
     "--artist",
+    "-a",
     type=str,
     default=None,
     help="Filter by artist name",
@@ -39,7 +44,7 @@ args = parser.parse_args()
 motion_output_filename = "motion_features_normalized.json" if not args.ignore_occluded_parts else "motion_features_normalized_occluded.json"
 
 if args.extract in ["motion", "both"]:
-    motion_extractor = MotionFeatureExtractor(
+    motion_extractor = GeneralMotionFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,
         artist_filter=args.artist,
@@ -54,3 +59,11 @@ if args.extract in ["audio", "both"]:
         dataset_dir=ds, instruments=instruments, motion_output_filename=motion_output_filename, artist_filter=args.artist
     )
     audio_extractor.extract()
+
+if args.extract == "motion-violin":
+    violin_motion_extractor = ViolinMotionFeatureExtractor(
+        dataset_dir=ds,
+        artist_filter=args.artist,
+        conf_threshold=args.confidence_threshold,
+    )
+    violin_motion_extractor.extract()
