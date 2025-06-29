@@ -26,11 +26,13 @@ from vovit.display.dataloaders_new import ( # noqa: E402 # type: ignore
     SaragaAudiovisualDataset,
 )
 
+torch.autograd.set_detect_anomaly(True)
+
 AUDIO_RATE = 16384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
-DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
+DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata.json")
 
 
 def calculate_saliency(model, sample, device="cpu"):
@@ -75,13 +77,38 @@ def calculate_saliency(model, sample, device="cpu"):
 
     face_sal, body_sal, mix_sal = None, None, None
     if face is not None and face.grad is not None:
-        face_sal = face.grad.abs().mean(dim=(0, 1, 2))
+        face_sal = (face * face.grad).abs().mean(dim=(0, 1, 2))
     if body is not None and body.grad is not None:
-        body_sal = body.grad.abs().mean(dim=(0, 1, 2))
+        body_sal = (body * body.grad).abs().mean(dim=(0, 1, 2))
     if mix.grad is not None:
-        mix_sal = mix.grad.abs().mean()
+        mix_sal = (mix * mix.grad).abs().mean()
 
     return face_sal, body_sal, mix_sal
+
+
+def save_song_results(artist, song, data, output_dir, model_type):
+    """Formats and saves the saliency data for a single song to a JSON file."""
+    if not any(data.values()):
+        print(f"\nNo data collected for {artist} - {song}. Skipping save.")
+        return
+
+    print(f"\nFormatting results for {artist} - {song}...")
+    final_data = {
+        'face_saliency_per_keypoint': [t.tolist() for t in data['face_saliency']],
+        'body_saliency_per_keypoint': [t.tolist() for t in data['body_saliency']],
+        'mix_saliency': [t.item() for t in data['mix_saliency']]
+    }
+
+    # Sanitize artist and song names for use in filenames
+    safe_artist = "".join(c for c in artist if c.isalnum() or c in " ._").rstrip()
+    safe_song = "".join(c for c in song if c.isalnum() or c in " ._").rstrip()
+    
+    output_filename = f"{safe_artist}_{safe_song}_{model_type}.json"
+    output_path = os.path.join(output_dir, output_filename)
+    
+    print(f"Saving results to {output_path}")
+    with open(output_path, 'w') as f:
+        json.dump(final_data, f, indent=4)
 
 
 def main(args):
@@ -90,7 +117,8 @@ def main(args):
         "body": ModelType.BODY,
         "face_body": ModelType.BODY_FACE,
     }
-    model_type = model_type_map[args.model]
+    model_type_key = args.model
+    model_type = model_type_map[model_type_key]
 
     dataset = SaragaAudiovisualDataset(
         data_path=DATASET_PATH,
@@ -103,7 +131,7 @@ def main(args):
     
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
 
-    print(f"Loading {args.model} model to {DEVICE}...")
+    print(f"Loading {model_type_key} model to {DEVICE}...")
     if model_type == ModelType.FACE:
         model = VoViT_f(pretrained=True, debug={}).to(DEVICE)
     elif model_type == ModelType.BODY:
@@ -112,46 +140,39 @@ def main(args):
         model = VoViT_fb(pretrained=True, debug={}).to(DEVICE)
     model.eval()
 
-    results = defaultdict(lambda: defaultdict(lambda: {
-        'face_saliency_sum': 0, 'face_count': 0,
-        'body_saliency_sum': 0, 'body_count': 0,
-        'mix_saliency_sum': 0, 'mix_count': 0
-    }))
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    current_artist, current_song = None, None
+    current_song_data = defaultdict(list)
 
     print(f"Calculating gradient saliency for all {len(dataset)} samples...")
     for sample in tqdm(dataloader):
         artist_name = sample['artist'][0]
         song_name = sample['song'][0]
+
+        # Initialize on the first sample
+        if current_artist is None:
+            current_artist, current_song = artist_name, song_name
+
+        # If we've moved to a new song, save the results for the previous one
+        if artist_name != current_artist or song_name != current_song:
+            save_song_results(current_artist, current_song, current_song_data, args.output_dir, model_type_key)
+            current_artist, current_song = artist_name, song_name
+            current_song_data = defaultdict(list)
+
         face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
 
         if face_sal is not None:
-            results[artist_name][song_name]['face_saliency_sum'] += face_sal.detach().cpu()
-            results[artist_name][song_name]['face_count'] += 1
+            current_song_data['face_saliency'].append(face_sal.detach().cpu())
         if body_sal is not None:
-            results[artist_name][song_name]['body_saliency_sum'] += body_sal.detach().cpu()
-            results[artist_name][song_name]['body_count'] += 1
+            current_song_data['body_saliency'].append(body_sal.detach().cpu())
         if mix_sal is not None:
-            results[artist_name][song_name]['mix_saliency_sum'] += mix_sal.detach().cpu()
-            results[artist_name][song_name]['mix_count'] += 1
+            current_song_data['mix_saliency'].append(mix_sal.detach().cpu())
 
-    print("\nCalculating final per-keypoint averages...")
-    final_averages = defaultdict(dict)
-    for artist, songs in results.items():
-        for song, data in songs.items():
-            avg_face = data['face_saliency_sum'] / data['face_count'] if data['face_count'] > 0 else 0
-            avg_body = data['body_saliency_sum'] / data['body_count'] if data['body_count'] > 0 else 0
-            avg_mix = data['mix_saliency_sum'] / data['mix_count'] if data['mix_count'] > 0 else 0
-            
-            final_averages[artist][song] = {
-                'face_saliency_per_keypoint': avg_face.tolist() if torch.is_tensor(avg_face) else avg_face,
-                'body_saliency_per_keypoint': avg_body.tolist() if torch.is_tensor(avg_body) else avg_body,
-                'mix_saliency': avg_mix.item() if torch.is_tensor(avg_mix) else avg_mix
-            }
-
-    output_path = f"saliency_averages_{args.model}.json"
-    print(f"Saving results to {output_path}")
-    with open(output_path, 'w') as f:
-        json.dump(final_averages, f, indent=4)
+    # Save the data for the very last song after the loop finishes
+    if current_artist is not None:
+        save_song_results(current_artist, current_song, current_song_data, args.output_dir, model_type_key)
 
     print("\nDone.")
 
@@ -166,11 +187,10 @@ if __name__ == "__main__":
         help="Type of VoViT model to use",
     )
     parser.add_argument(
-        "--loss",
+        "--output_dir",
         type=str,
-        default="mse",
-        choices=["mse", "sdr", "sir", "sar"],
-        help="Loss function to use for gradient saliency calculation",
+        default="saliency_scores",
+        help="Directory to save the output JSON files",
     )
     args = parser.parse_args()
     main(args)
