@@ -21,6 +21,7 @@ def smooth_keypoints(
             )
     return out
 
+
 def normalize_keypoints(keypoints, scale_factor=1.0):
     """
     Normalize 2D keypoints per frame by centering them around the mean position of all keypoints in each frame.

@@ -17,10 +17,8 @@ load_dotenv()
 vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
 sys.path.insert(0, vovit_path)
 
-from tools.body_parts_map import keypoint_map
-
-from vovit import VoViT_b, VoViT_f, VoViT_fb # type: ignore # noqa: E402
-from vovit.display.dataloaders_new import ( # noqa: E402 # type: ignore
+from vovit import VoViT_b, VoViT_f, VoViT_fb  # type: ignore # noqa: E402
+from vovit.display.dataloaders_new import (  # noqa: E402 # type: ignore
     AudioType,
     ModelType,
     SaragaAudiovisualDataset,
@@ -40,17 +38,17 @@ def calculate_saliency(model, sample, device="cpu"):
     Calculates gradient saliency for a single data sample.
     Assumes model is already on the correct device and in eval mode.
     """
-    mix = sample['mix'].float().requires_grad_(True).to(device)
-    target = sample['target'].float().to(device)
-    if 'face' in sample and sample['face'] is not None:
-        face_tensor = torch.nan_to_num(sample['face'].float(), nan=0.0)
+    mix = sample["mix"].float().requires_grad_(True).to(device)
+    target = sample["target"].float().to(device)
+    if "face" in sample and sample["face"] is not None:
+        face_tensor = torch.nan_to_num(sample["face"].float(), nan=0.0)
         face = face_tensor.requires_grad_(True).to(device)
         face.retain_grad()
     else:
         face = None
 
-    if 'body' in sample and sample['body'] is not None:
-        body_tensor = torch.nan_to_num(sample['body'].float(), nan=0.0)
+    if "body" in sample and sample["body"] is not None:
+        body_tensor = torch.nan_to_num(sample["body"].float(), nan=0.0)
         body = body_tensor.requires_grad_(True).to(device)
         body.retain_grad()
     else:
@@ -67,8 +65,10 @@ def calculate_saliency(model, sample, device="cpu"):
         elif isinstance(model, VoViT_fb):
             out = model.forward(mix, face, body)
         else:
-            raise TypeError("Model must be an instance of VoViT_f, VoViT_b, or VoViT_fb")
-        
+            raise TypeError(
+                "Model must be an instance of VoViT_f, VoViT_b, or VoViT_fb"
+            )
+
         wav = out["estimated_wav"]
         loss = F.mse_loss(wav, target)
 
@@ -94,20 +94,26 @@ def save_song_results(artist, song, data, output_dir, model_type):
 
     print(f"\nFormatting results for {artist} - {song}...")
     final_data = {
-        'face_saliency_per_keypoint': [t.tolist() for t in data['face_saliency']],
-        'body_saliency_per_keypoint': [t.tolist() for t in data['body_saliency']],
-        'mix_saliency': [t.item() for t in data['mix_saliency']]
+        "face_saliency_per_keypoint": [
+            t.tolist() for t in data["face_saliency"]
+        ],
+        "body_saliency_per_keypoint": [
+            t.tolist() for t in data["body_saliency"]
+        ],
+        "mix_saliency": [t.item() for t in data["mix_saliency"]],
     }
 
     # Sanitize artist and song names for use in filenames
-    safe_artist = "".join(c for c in artist if c.isalnum() or c in " ._").rstrip()
+    safe_artist = "".join(
+        c for c in artist if c.isalnum() or c in " ._"
+    ).rstrip()
     safe_song = "".join(c for c in song if c.isalnum() or c in " ._").rstrip()
-    
+
     output_filename = f"{safe_artist}_{safe_song}_{model_type}.json"
     output_path = os.path.join(output_dir, output_filename)
-    
+
     print(f"Saving results to {output_path}")
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(final_data, f, indent=4)
 
 
@@ -128,8 +134,10 @@ def main(args):
         audio_type=AudioType.VOCAL,
         metadata_path=DATASET_METADATA_PATH,
     )
-    
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
+
+    dataloader = DataLoader(
+        dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True
+    )
 
     print(f"Loading {model_type_key} model to {DEVICE}...")
     if model_type == ModelType.FACE:
@@ -148,8 +156,8 @@ def main(args):
 
     print(f"Calculating gradient saliency for all {len(dataset)} samples...")
     for sample in tqdm(dataloader):
-        artist_name = sample['artist'][0]
-        song_name = sample['song'][0]
+        artist_name = sample["artist"][0]
+        song_name = sample["song"][0]
 
         # Initialize on the first sample
         if current_artist is None:
@@ -157,28 +165,42 @@ def main(args):
 
         # If we've moved to a new song, save the results for the previous one
         if artist_name != current_artist or song_name != current_song:
-            save_song_results(current_artist, current_song, current_song_data, args.output_dir, model_type_key)
+            save_song_results(
+                current_artist,
+                current_song,
+                current_song_data,
+                args.output_dir,
+                model_type_key,
+            )
             current_artist, current_song = artist_name, song_name
             current_song_data = defaultdict(list)
 
         face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
 
         if face_sal is not None:
-            current_song_data['face_saliency'].append(face_sal.detach().cpu())
+            current_song_data["face_saliency"].append(face_sal.detach().cpu())
         if body_sal is not None:
-            current_song_data['body_saliency'].append(body_sal.detach().cpu())
+            current_song_data["body_saliency"].append(body_sal.detach().cpu())
         if mix_sal is not None:
-            current_song_data['mix_saliency'].append(mix_sal.detach().cpu())
+            current_song_data["mix_saliency"].append(mix_sal.detach().cpu())
 
     # Save the data for the very last song after the loop finishes
     if current_artist is not None:
-        save_song_results(current_artist, current_song, current_song_data, args.output_dir, model_type_key)
+        save_song_results(
+            current_artist,
+            current_song,
+            current_song_data,
+            args.output_dir,
+            model_type_key,
+        )
 
     print("\nDone.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VoViT Full Dataset Gradient Saliency")
+    parser = argparse.ArgumentParser(
+        description="VoViT Full Dataset Gradient Saliency"
+    )
     parser.add_argument(
         "--model",
         type=str,

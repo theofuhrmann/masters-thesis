@@ -5,7 +5,6 @@ import sys
 from collections import defaultdict
 
 import torch
-import torch.nn.functional as F
 from dotenv import load_dotenv
 from torch.cuda.amp import autocast
 from torch.utils.data import DataLoader
@@ -17,10 +16,8 @@ load_dotenv()
 vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
 sys.path.insert(0, vovit_path)
 
-from tools.body_parts_map import keypoint_map
-
-from vovit import VoViT_b, VoViT_f, VoViT_fb # type: ignore # noqa: E402
-from vovit.display.dataloaders_new import ( # noqa: E402 # type: ignore
+from vovit import VoViT_b, VoViT_f, VoViT_fb  # type: ignore # noqa: E402
+from vovit.display.dataloaders_new import (  # noqa: E402 # type: ignore
     AudioType,
     ModelType,
     SaragaAudiovisualDataset,
@@ -30,7 +27,9 @@ AUDIO_RATE = 16384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
-DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
+DATASET_METADATA_PATH = os.path.join(
+    DATASET_PATH, "dataset_metadata_test.json"
+)
 
 
 def find_attentions(model, sample, device):
@@ -40,13 +39,13 @@ def find_attentions(model, sample, device):
     audio = sample["audio"].to(device)
     landmarks = sample["landmarks"].to(device)
     body_ld = None
-    if 'body_ld' in sample and isinstance(sample['body_ld'], torch.Tensor):
-        body_ld = sample['body_ld'].to(device)
+    if "body_ld" in sample and isinstance(sample["body_ld"], torch.Tensor):
+        body_ld = sample["body_ld"].to(device)
 
     with torch.no_grad():
         with autocast():
             output = model(audio, landmarks, body_ld)
-    
+
     attention_weights = output.get("attention_weights")
 
     if attention_weights is None:
@@ -54,7 +53,7 @@ def find_attentions(model, sample, device):
 
     # attention_weights shape: (batch_size, audio_seq_len, video_seq_len)
     # with batch_size = 1
-    
+
     # Attention score for each video feature timestep (how much audio attends to it)
     video_attention = attention_weights.mean(dim=1).squeeze(0)
 
@@ -79,8 +78,10 @@ def main(args):
         audio_type=AudioType.VOCAL,
         metadata_path=DATASET_METADATA_PATH,
     )
-    
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
+
+    dataloader = DataLoader(
+        dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True
+    )
 
     print(f"Loading {args.model} model to {DEVICE}...")
     if model_type == ModelType.FACE:
@@ -94,27 +95,32 @@ def main(args):
     results = defaultdict(lambda: defaultdict(list))
     print(f"Find attention scores for all {len(dataset)} samples...")
     for sample in tqdm(dataloader):
-        artist_name = sample['artist'][0]
-        song_name = sample['song'][0]
-        audio_attention, video_attention = find_attentions(model, sample, DEVICE)
+        artist_name = sample["artist"][0]
+        song_name = sample["song"][0]
+        audio_attention, video_attention = find_attentions(
+            model, sample, DEVICE
+        )
 
         if audio_attention is not None and video_attention is not None:
-            results[artist_name][song_name].append({
-                "audio_attention": audio_attention.tolist(),
-                "video_attention": video_attention.tolist(),
-            })
-
+            results[artist_name][song_name].append(
+                {
+                    "audio_attention": audio_attention.tolist(),
+                    "video_attention": video_attention.tolist(),
+                }
+            )
 
     output_path = f"attention_scores_{args.model}.json"
     print(f"Saving results to {output_path}")
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(results, f, indent=4)
 
     print("\nDone.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VoViT Full Dataset Attention Analysis")
+    parser = argparse.ArgumentParser(
+        description="VoViT Full Dataset Attention Analysis"
+    )
     parser.add_argument(
         "--model",
         type=str,

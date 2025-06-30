@@ -1,17 +1,18 @@
 import json
 import os
 import sys
+from abc import ABC, abstractmethod
 
 import numpy as np
 from dotenv import load_dotenv
-from abc import ABC, abstractmethod
 
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+project_root = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../..")
+)
 sys.path.insert(0, project_root)
 
 from tools.body_parts_map import body_parts_map  # noqa: E402
-from tools.utils import smooth_keypoints, normalize_keypoints  # noqa: E402
+from tools.utils import normalize_keypoints, smooth_keypoints  # noqa: E402
 
 
 class BaseMotionFeatureExtractor(ABC):
@@ -73,12 +74,9 @@ class BaseMotionFeatureExtractor(ABC):
             if new_indices:
                 updated_body_parts_map[part] = new_indices
 
-        # Normalize keypoints before deleting undesired parts to center 
+        # Normalize keypoints before deleting undesired parts to center
         # them around the body centroid
-        keypoints = normalize_keypoints(
-            keypoints,
-            scale_factor=1.0
-        )
+        keypoints = normalize_keypoints(keypoints, scale_factor=1.0)
 
         # Delete keypoints and scores
         keypoints = np.delete(keypoints, keypoints_to_remove, axis=1)

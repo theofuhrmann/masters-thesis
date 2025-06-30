@@ -41,7 +41,11 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-motion_output_filename = "motion_features_normalized.json" if not args.ignore_occluded_parts else "motion_features_normalized_occluded.json"
+motion_output_filename = (
+    "motion_features_normalized.json"
+    if not args.ignore_occluded_parts
+    else "motion_features_normalized_occluded.json"
+)
 
 if args.extract in ["motion", "both"]:
     motion_extractor = GeneralMotionFeatureExtractor(
@@ -56,7 +60,10 @@ if args.extract in ["motion", "both"]:
 
 if args.extract in ["audio", "both"]:
     audio_extractor = AudioFeatureExtractor(
-        dataset_dir=ds, instruments=instruments, motion_output_filename=motion_output_filename, artist_filter=args.artist
+        dataset_dir=ds,
+        instruments=instruments,
+        motion_output_filename=motion_output_filename,
+        artist_filter=args.artist,
     )
     audio_extractor.extract()
 

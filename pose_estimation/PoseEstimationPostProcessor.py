@@ -86,7 +86,8 @@ class PoseEstimationPostProcessor:
         # assign instruments based on x‐order
         xs = [c[0] for c in centers]
         order = sorted(range(len(xs)), key=lambda i: xs[i])
-        subj2inst = {si: layout[pos] for pos, si in enumerate(order)}
+        # Map: center_index -> instrument, where instruments are assigned left-to-right
+        subj2inst = {order[pos]: layout[pos] for pos in range(len(order))}
         # build dict of per-instrument time lists
         out = {"keypoints": {}, "keypoint_scores": {}}
         for si, inst in subj2inst.items():

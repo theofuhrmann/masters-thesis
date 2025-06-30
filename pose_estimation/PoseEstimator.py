@@ -3,9 +3,10 @@ import os
 import cv2
 import numpy.core.multiarray as multiarray
 import torch
+from tqdm import tqdm
+
 from mmpose.apis import MMPoseInferencer, init_model
 from mmpose.utils import register_all_modules
-from tqdm import tqdm
 
 
 class PoseEstimator:

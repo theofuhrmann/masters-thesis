@@ -3,10 +3,11 @@ import os
 import sys
 
 import numpy as np
-from dotenv import load_dotenv
 from sklearn.decomposition import PCA
 from tqdm import tqdm
+
 from .BaseMotionFeatureExtractor import BaseMotionFeatureExtractor
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
@@ -30,7 +31,7 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
             dataset_dir=dataset_dir,
             conf_threshold=conf_threshold,
             smooth_win=smooth_win,
-            smooth_poly=smooth_poly
+            smooth_poly=smooth_poly,
         )
         self.instruments = instruments
         self.artist_filter = artist_filter
@@ -68,10 +69,7 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
             np.linalg.norm(acceleration, axis=-1),
         )
 
-        return {
-            "speed": speed,
-            "acceleration": acceleration_magnitude
-        }
+        return {"speed": speed, "acceleration": acceleration_magnitude}
 
     def _summarize(
         self, speed: np.ndarray, accel: np.ndarray, body_parts_map: dict
@@ -127,8 +125,12 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                     inst_dir = os.path.join(song_dir, instrument)
                     if not os.path.isdir(inst_dir):
                         continue
-                    if os.path.exists(os.path.join(inst_dir, self.output_filename)):
-                        print(f"Skipping {artist}/{song}/{instrument}: already processed.")
+                    if os.path.exists(
+                        os.path.join(inst_dir, self.output_filename)
+                    ):
+                        print(
+                            f"Skipping {artist}/{song}/{instrument}: already processed."
+                        )
                         continue
                     try:
                         keypoints = np.load(
@@ -150,12 +152,10 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                                 keypoints, scores, occluded_parts
                             )
                         )
-                        features = (
-                            self._compute_features(
-                                keypoints,
-                                scores,
-                                self.dataset_metadata[artist][song]["fps"],
-                            )
+                        features = self._compute_features(
+                            keypoints,
+                            scores,
+                            self.dataset_metadata[artist][song]["fps"],
                         )
                         summary = self._summarize(
                             features["speed"],
@@ -171,7 +171,8 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                     try:
                         if self.pca_output_filename is not None:
                             motion_features_framewise = np.concatenate(
-                                [features["speed"], features["acceleration"]], axis=1
+                                [features["speed"], features["acceleration"]],
+                                axis=1,
                             )
                             pca_components = self.compute_pca(
                                 motion_features_framewise

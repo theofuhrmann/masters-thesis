@@ -17,10 +17,8 @@ load_dotenv()
 vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
 sys.path.insert(0, vovit_path)
 
-from tools.body_parts_map import keypoint_map
-
-from vovit import VoViT_b, VoViT_f, VoViT_fb # type: ignore # noqa: E402
-from vovit.display.dataloaders_new import ( # noqa: E402 # type: ignore
+from vovit import VoViT_b, VoViT_f, VoViT_fb  # type: ignore # noqa: E402
+from vovit.display.dataloaders_new import (  # noqa: E402 # type: ignore
     AudioType,
     ModelType,
     SaragaAudiovisualDataset,
@@ -30,7 +28,9 @@ AUDIO_RATE = 16384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
-DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata_test.json")
+DATASET_METADATA_PATH = os.path.join(
+    DATASET_PATH, "dataset_metadata_test.json"
+)
 
 
 def calculate_saliency(model, sample, device="cpu"):
@@ -38,17 +38,17 @@ def calculate_saliency(model, sample, device="cpu"):
     Calculates gradient saliency for a single data sample.
     Assumes model is already on the correct device and in eval mode.
     """
-    mix = sample['mix'].float().requires_grad_(True).to(device)
-    target = sample['target'].float().to(device)
-    if 'face' in sample and sample['face'] is not None:
-        face_tensor = torch.nan_to_num(sample['face'].float(), nan=0.0)
+    mix = sample["mix"].float().requires_grad_(True).to(device)
+    target = sample["target"].float().to(device)
+    if "face" in sample and sample["face"] is not None:
+        face_tensor = torch.nan_to_num(sample["face"].float(), nan=0.0)
         face = face_tensor.requires_grad_(True).to(device)
         face.retain_grad()
     else:
         face = None
 
-    if 'body' in sample and sample['body'] is not None:
-        body_tensor = torch.nan_to_num(sample['body'].float(), nan=0.0)
+    if "body" in sample and sample["body"] is not None:
+        body_tensor = torch.nan_to_num(sample["body"].float(), nan=0.0)
         body = body_tensor.requires_grad_(True).to(device)
         body.retain_grad()
     else:
@@ -65,8 +65,10 @@ def calculate_saliency(model, sample, device="cpu"):
         elif isinstance(model, VoViT_fb):
             out = model.forward(mix, face, body)
         else:
-            raise TypeError("Model must be an instance of VoViT_f, VoViT_b, or VoViT_fb")
-        
+            raise TypeError(
+                "Model must be an instance of VoViT_f, VoViT_b, or VoViT_fb"
+            )
+
         wav = out["estimated_wav"]
         loss = F.mse_loss(wav, target)
 
@@ -100,8 +102,10 @@ def main(args):
         audio_type=AudioType.VOCAL,
         metadata_path=DATASET_METADATA_PATH,
     )
-    
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
+
+    dataloader = DataLoader(
+        dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True
+    )
 
     print(f"Loading {args.model} model to {DEVICE}...")
     if model_type == ModelType.FACE:
@@ -112,52 +116,89 @@ def main(args):
         model = VoViT_fb(pretrained=True, debug={}).to(DEVICE)
     model.eval()
 
-    results = defaultdict(lambda: defaultdict(lambda: {
-        'face_saliency_sum': 0, 'face_count': 0,
-        'body_saliency_sum': 0, 'body_count': 0,
-        'mix_saliency_sum': 0, 'mix_count': 0
-    }))
+    results = defaultdict(
+        lambda: defaultdict(
+            lambda: {
+                "face_saliency_sum": 0,
+                "face_count": 0,
+                "body_saliency_sum": 0,
+                "body_count": 0,
+                "mix_saliency_sum": 0,
+                "mix_count": 0,
+            }
+        )
+    )
 
     print(f"Calculating gradient saliency for all {len(dataset)} samples...")
     for sample in tqdm(dataloader):
-        artist_name = sample['artist'][0]
-        song_name = sample['song'][0]
+        artist_name = sample["artist"][0]
+        song_name = sample["song"][0]
         face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
 
         if face_sal is not None:
-            results[artist_name][song_name]['face_saliency_sum'] += face_sal.detach().cpu()
-            results[artist_name][song_name]['face_count'] += 1
+            results[artist_name][song_name][
+                "face_saliency_sum"
+            ] += face_sal.detach().cpu()
+            results[artist_name][song_name]["face_count"] += 1
         if body_sal is not None:
-            results[artist_name][song_name]['body_saliency_sum'] += body_sal.detach().cpu()
-            results[artist_name][song_name]['body_count'] += 1
+            results[artist_name][song_name][
+                "body_saliency_sum"
+            ] += body_sal.detach().cpu()
+            results[artist_name][song_name]["body_count"] += 1
         if mix_sal is not None:
-            results[artist_name][song_name]['mix_saliency_sum'] += mix_sal.detach().cpu()
-            results[artist_name][song_name]['mix_count'] += 1
+            results[artist_name][song_name][
+                "mix_saliency_sum"
+            ] += mix_sal.detach().cpu()
+            results[artist_name][song_name]["mix_count"] += 1
 
     print("\nCalculating final per-keypoint averages...")
     final_averages = defaultdict(dict)
     for artist, songs in results.items():
         for song, data in songs.items():
-            avg_face = data['face_saliency_sum'] / data['face_count'] if data['face_count'] > 0 else 0
-            avg_body = data['body_saliency_sum'] / data['body_count'] if data['body_count'] > 0 else 0
-            avg_mix = data['mix_saliency_sum'] / data['mix_count'] if data['mix_count'] > 0 else 0
-            
+            avg_face = (
+                data["face_saliency_sum"] / data["face_count"]
+                if data["face_count"] > 0
+                else 0
+            )
+            avg_body = (
+                data["body_saliency_sum"] / data["body_count"]
+                if data["body_count"] > 0
+                else 0
+            )
+            avg_mix = (
+                data["mix_saliency_sum"] / data["mix_count"]
+                if data["mix_count"] > 0
+                else 0
+            )
+
             final_averages[artist][song] = {
-                'face_saliency_per_keypoint': avg_face.tolist() if torch.is_tensor(avg_face) else avg_face,
-                'body_saliency_per_keypoint': avg_body.tolist() if torch.is_tensor(avg_body) else avg_body,
-                'mix_saliency': avg_mix.item() if torch.is_tensor(avg_mix) else avg_mix
+                "face_saliency_per_keypoint": (
+                    avg_face.tolist()
+                    if torch.is_tensor(avg_face)
+                    else avg_face
+                ),
+                "body_saliency_per_keypoint": (
+                    avg_body.tolist()
+                    if torch.is_tensor(avg_body)
+                    else avg_body
+                ),
+                "mix_saliency": (
+                    avg_mix.item() if torch.is_tensor(avg_mix) else avg_mix
+                ),
             }
 
     output_path = f"saliency_averages_{args.model}.json"
     print(f"Saving results to {output_path}")
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(final_averages, f, indent=4)
 
     print("\nDone.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VoViT Full Dataset Gradient Saliency")
+    parser = argparse.ArgumentParser(
+        description="VoViT Full Dataset Gradient Saliency"
+    )
     parser.add_argument(
         "--model",
         type=str,

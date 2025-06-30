@@ -9,14 +9,12 @@ import numpy as np
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 from tools.body_parts_map import body_parts_map  # noqa: E402
 from tools.utils import smooth_keypoints  # noqa: E402
 
-INSTRUMENTS = ["vocal", "violin", "mridangam"]
 NUMBER_OF_KEYPOINTS = 133
 
 
@@ -39,7 +37,7 @@ class GestureVisualizer:
         self.dataset_path = dataset_path
         self.artist = artist
         self.song = song
-        self.instruments = [i for i in instruments if i in INSTRUMENTS]
+        self.instruments = instruments
         self.motion_features_filename = motion_features_filename
         self.audio_features_filename = audio_features_filename
         self.pca_components_filename = pca_components_filename
@@ -105,12 +103,14 @@ class GestureVisualizer:
                 "body": np.load(body_keypoints_file, allow_pickle=True),
             }
             if instrument == "vocal":
+                self.keypoints[instrument]["face"] = None
                 face_keypoints_file = os.path.join(
                     self.base_directory, instrument, "face_keypoints.npy"
                 )
-                self.keypoints[instrument]["face"] = np.load(
-                    face_keypoints_file, allow_pickle=True
-                ).transpose((0, 2, 1))
+                if os.path.exists(face_keypoints_file):
+                    self.keypoints[instrument]["face"] = np.load(
+                        face_keypoints_file, allow_pickle=True
+                    ).transpose((0, 2, 1))
 
             self.keypoint_scores[instrument] = np.load(
                 body_keypoint_scores_file, allow_pickle=True
@@ -299,6 +299,7 @@ class GestureVisualizer:
                         face_keypoints = (
                             self.keypoints[instrument]["face"][frame_index]
                             if instrument == "vocal"
+                            and self.keypoints[instrument]["face"] is not None
                             else None
                         )
                         # find correlated parts
@@ -335,7 +336,7 @@ class GestureVisualizer:
                 video_writer.write(frame)
             frame_index += 1
             pbar.update(1)
-            
+
         pbar.close()
         video_capture.release()
         video_writer.release()

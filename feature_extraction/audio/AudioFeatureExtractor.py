@@ -67,7 +67,9 @@ class AudioFeatureExtractor:
                     if os.path.exists(
                         os.path.join(inst_dir, "audio_features.json")
                     ):
-                        print(f"Skipping {artist}/{song}/{inst}: already processed.")
+                        print(
+                            f"Skipping {artist}/{song}/{inst}: already processed."
+                        )
                         continue
                     try:
                         with open(
