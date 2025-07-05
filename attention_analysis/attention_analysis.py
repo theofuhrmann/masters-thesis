@@ -16,7 +16,7 @@ load_dotenv()
 vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
 sys.path.insert(0, vovit_path)
 
-from vovit import VoViT_b, VoViT_f, VoViT_fb  # type: ignore # noqa: E402
+from vovit import VoViT_b, VoViT_f  # type: ignore # noqa: E402
 from vovit.display.dataloaders_new import (  # noqa: E402 # type: ignore
     AudioType,
     ModelType,
@@ -36,24 +36,20 @@ def find_attentions(model, sample, device):
     """
     Finds the attention scores for audio and video features for a given sample.
     """
-    audio = sample["audio"].to(device)
-    landmarks = sample["landmarks"].to(device)
-    body_ld = None
-    if "body_ld" in sample and isinstance(sample["body_ld"], torch.Tensor):
-        body_ld = sample["body_ld"].to(device)
+    audio = sample["mix"].to(device)
+    face = sample["face"].to(device) if "face" in sample else None
+    body = sample["body"].to(device) if "body" in sample else None
 
     with torch.no_grad():
         with autocast():
-            output = model(audio, landmarks, body_ld)
+            if face is not None and body is not None:
+                output = model(audio, face, body)
+            elif face is not None:
+                output = model(audio, face)
+            elif body is not None:
+                output = model(audio, body)
 
-    attention_weights = output.get("attention_weights")
-
-    if attention_weights is None:
-        return None, None
-
-    # attention_weights shape: (batch_size, audio_seq_len, video_seq_len)
-    # with batch_size = 1
-
+    attention_weights = output["attention_weights"]
     # Attention score for each video feature timestep (how much audio attends to it)
     video_attention = attention_weights.mean(dim=1).squeeze(0)
 
@@ -65,31 +61,37 @@ def find_attentions(model, sample, device):
 
 def main(args):
     model_type_map = {
-        "vocal": ModelType.FACE,
-        "violin": ModelType.BODY,
+        "vocal": ModelType.FACE_VOCAL_FUSION,
+        "violin": ModelType.BODY_VIOLIN_FUSION,
     }
     model_type = model_type_map[args.model]
+
+    audio_type_map = {
+        "vocal": AudioType.VOCAL,
+        "violin": AudioType.VIOLIN,
+    }
+    audio_type = audio_type_map[args.model]
 
     dataset = SaragaAudiovisualDataset(
         data_path=DATASET_PATH,
         audiorate=AUDIO_RATE,
         chunk_duration=DURATION,
         model_type=model_type,
-        audio_type=AudioType.VOCAL,
+        audio_type=audio_type,
         metadata_path=DATASET_METADATA_PATH,
+        face_keypoints_source="mmpose",
+        # layout=["violin", "vocal", "mridangam"]
     )
 
-    dataloader = DataLoader(
-        dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True
-    )
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     print(f"Loading {args.model} model to {DEVICE}...")
-    if model_type == ModelType.FACE:
+    if model_type == ModelType.FACE_VOCAL_FUSION:
         model = VoViT_f(pretrained=True, debug={}).to(DEVICE)
-    elif model_type == ModelType.BODY:
+    elif model_type == ModelType.BODY_VIOLIN_FUSION:
         model = VoViT_b(pretrained=True, debug={}).to(DEVICE)
     else:
-        model = VoViT_fb(pretrained=True, debug={}).to(DEVICE)
+        raise ValueError(f"Unsupported model type: {model_type}")
     model.eval()
 
     results = defaultdict(lambda: defaultdict(list))
@@ -97,9 +99,19 @@ def main(args):
     for sample in tqdm(dataloader):
         artist_name = sample["artist"][0]
         song_name = sample["song"][0]
-        audio_attention, video_attention = find_attentions(
-            model, sample, DEVICE
-        )
+        try:
+            audio_attention, video_attention = find_attentions(
+                model, sample, DEVICE
+            )
+        except RuntimeError as e:
+            print(
+                f"Error processing sample for artist: {artist_name}, song: {song_name}"
+            )
+            print(
+                f"Sample shape: {sample['mix'].shape}, face shape: {sample.get('face', None).shape}"
+            )
+            print(e)
+            continue
 
         if audio_attention is not None and video_attention is not None:
             results[artist_name][song_name].append(
@@ -109,7 +121,7 @@ def main(args):
                 }
             )
 
-    output_path = f"attention_scores_{args.model}.json"
+    output_path = f"results/attention_scores_{args.model}_test.json"
     print(f"Saving results to {output_path}")
     with open(output_path, "w") as f:
         json.dump(results, f, indent=4)

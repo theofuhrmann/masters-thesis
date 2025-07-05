@@ -38,6 +38,13 @@ parser.add_argument(
     default=None,
     help="Filter by artist name",
 )
+parser.add_argument(
+    "--song",
+    "-s",
+    type=str,
+    default=None,
+    help="Filter by song name",
+)
 
 args = parser.parse_args()
 
@@ -71,6 +78,7 @@ if args.extract == "motion-violin":
     violin_motion_extractor = ViolinMotionFeatureExtractor(
         dataset_dir=ds,
         artist_filter=args.artist,
+        song_filter=args.song,
         conf_threshold=args.confidence_threshold,
     )
     violin_motion_extractor.extract()

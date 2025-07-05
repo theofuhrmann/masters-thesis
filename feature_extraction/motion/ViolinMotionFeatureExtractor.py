@@ -18,6 +18,7 @@ class ViolinMotionFeatureExtractor(BaseMotionFeatureExtractor):
         self,
         dataset_dir: str,
         artist_filter: str = None,
+        song_filter: str = None,
         conf_threshold: float = 5.0,
         smooth_win: int = 5,
         smooth_poly: int = 2,
@@ -30,6 +31,7 @@ class ViolinMotionFeatureExtractor(BaseMotionFeatureExtractor):
             smooth_poly=smooth_poly,
         )
         self.artist_filter = artist_filter
+        self.song_filter = song_filter
         self.body_parts_map = body_parts_map
         self.output_filename = motion_output_filename
 
@@ -90,6 +92,8 @@ class ViolinMotionFeatureExtractor(BaseMotionFeatureExtractor):
             for song in tqdm(
                 os.listdir(artist_dir), desc="Songs", leave=False
             ):
+                if self.song_filter and song != self.song_filter:
+                    continue
                 inst_dir = os.path.join(artist_dir, song, "violin")
                 if not os.path.isdir(inst_dir) or song.startswith("."):
                     continue

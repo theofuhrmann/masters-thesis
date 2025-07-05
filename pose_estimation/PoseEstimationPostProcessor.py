@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 NUMBER_OF_KEYPOINTS = 133
 CLUSTER_DISTANCE_THRESHOLD = 100
+HEIGHT_OUTLIER_THRESHOLD = 150
 
 
 class PoseEstimationPostProcessor:
@@ -28,8 +29,42 @@ class PoseEstimationPostProcessor:
         ) as f:
             self.metadata = json.load(f)
 
+    def get_adaptive_thresholds(self, frames):
+        """
+        Calculate adaptive thresholds based on frame dimensions and detected subject distribution.
+        """
+        if not frames:
+            return CLUSTER_DISTANCE_THRESHOLD, HEIGHT_OUTLIER_THRESHOLD
+
+        # Estimate frame dimensions from bounding boxes
+        all_coords = []
+        for frame in frames:
+            for subj in frame:
+                x0, y0, x1, y1 = subj["bbox"][0]
+                all_coords.extend([x0, y0, x1, y1])
+
+        if not all_coords:
+            return CLUSTER_DISTANCE_THRESHOLD, HEIGHT_OUTLIER_THRESHOLD
+
+        # Rough estimate of frame dimensions
+        frame_width = max(all_coords) - min(all_coords)
+        frame_height = max(
+            [subj["bbox"][0][3] for frame in frames for subj in frame]
+        ) - min([subj["bbox"][0][1] for frame in frames for subj in frame])
+
+        # Adaptive cluster distance: ~8% of frame width
+        adaptive_cluster_threshold = max(50, min(200, frame_width * 0.08))
+
+        # Adaptive height threshold: ~15% of frame height
+        adaptive_height_threshold = max(100, min(300, frame_height * 0.15))
+
+        return adaptive_cluster_threshold, adaptive_height_threshold
+
     def calculate_subject_centers(self, frames):
         """Return list of [x,y] for consistently detected subjects."""
+        # Get adaptive thresholds
+        adaptive_cluster_threshold, _ = self.get_adaptive_thresholds(frames)
+
         all_centers = []
         for fi, frame in enumerate(frames):
             for si, subj in enumerate(frame):
@@ -43,7 +78,7 @@ class PoseEstimationPostProcessor:
             for r in refs:
                 if (
                     np.hypot(cx - r["cx"], cy - r["cy"])
-                    < CLUSTER_DISTANCE_THRESHOLD
+                    < adaptive_cluster_threshold
                 ):
                     # update avg
                     r["cx"] = (r["cx"] * r["count"] + cx) / (r["count"] + 1)
@@ -56,19 +91,38 @@ class PoseEstimationPostProcessor:
         # filter infrequent
         min_count = len(frames) * 0.66
         centers = [(r["cx"], r["cy"]) for r in refs if r["count"] > min_count]
+        print(
+            f"  Using adaptive cluster threshold: {adaptive_cluster_threshold:.1f}"
+        )
         return centers
 
     def reorder_and_map(self, frames, layout):
         """
         1) pick bottom-N by y
-        2) reorder each frame to match
-        3) map subject-idx→instrument by x left→right
+        2) filter out height outliers (artwork false positives)
+        3) reorder each frame to match
+        4) map subject-idx→instrument by x left→right
         returns (consistent_dict, centers)
         """
         centers = self.calculate_subject_centers(frames)
+
+        # Filter out height outliers before selecting final centers
+        print(f"  Found {len(centers)} potential subjects")
+        self.debug_print_centers(centers, "Before height filtering")
+        centers = self.filter_height_outliers(centers, frames)
+        print(f"  After height filtering: {len(centers)} subjects")
+        self.debug_print_centers(centers, "After height filtering")
+
         # pick bottom num_instruments
         centers.sort(key=lambda c: c[1], reverse=True)
         centers = centers[: len(layout)]
+        self.debug_print_centers(
+            centers, f"Final selected {len(layout)} subjects"
+        )
+
+        # Get adaptive cluster threshold for frame matching
+        adaptive_cluster_threshold, _ = self.get_adaptive_thresholds(frames)
+
         # map subject indices per frame
         reorganized = []
         for frame in frames:
@@ -80,14 +134,13 @@ class PoseEstimationPostProcessor:
                 # find nearest center
                 dists = [np.hypot(cx - cx0, cy - cy0) for cx0, cy0 in centers]
                 idx = int(np.argmin(dists))
-                if dists[idx] < 100:
+                if dists[idx] < adaptive_cluster_threshold:
                     slot[idx] = subj
             reorganized.append(slot)
         # assign instruments based on x‐order
         xs = [c[0] for c in centers]
         order = sorted(range(len(xs)), key=lambda i: xs[i])
-        # Map: center_index -> instrument, where instruments are assigned left-to-right
-        subj2inst = {order[pos]: layout[pos] for pos in range(len(order))}
+        subj2inst = {si: layout[pos] for pos, si in enumerate(order)}
         # build dict of per-instrument time lists
         out = {"keypoints": {}, "keypoint_scores": {}}
         for si, inst in subj2inst.items():
@@ -202,3 +255,54 @@ class PoseEstimationPostProcessor:
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             np.save(outf, arr)
             print(f" → saved {outf}")
+
+    def filter_height_outliers(self, centers, frames):
+        """
+        Remove centers that are significantly higher than others (likely artwork).
+        Uses adaptive outlier detection based on y-coordinate distribution.
+        """
+        if len(centers) <= 1:
+            return centers
+
+        # Get adaptive height threshold
+        _, adaptive_height_threshold = self.get_adaptive_thresholds(frames)
+
+        y_coords = [c[1] for c in centers]
+
+        # Calculate statistics for y-coordinates
+        median_y = np.median(y_coords)
+        std_y = np.std(y_coords)
+        q75 = np.percentile(y_coords, 75)
+
+        # Use adaptive threshold based on data distribution and frame size
+        # If there's high variance, use a more conservative threshold
+        final_threshold = min(adaptive_height_threshold, max(50, std_y * 1.5))
+
+        # Filter out centers that are too high (artwork territory)
+        filtered_centers = []
+        for cx, cy in centers:
+            # Multiple criteria for filtering:
+            # 1. Too far above median (static threshold)
+            # 2. Too far above 75th percentile (adaptive threshold)
+            if (cy < median_y - final_threshold) or (
+                cy < q75 - final_threshold * 0.8
+            ):
+                print(
+                    f"  Filtering out potential artwork at ({cx:.1f}, {cy:.1f}) - too high (median: {median_y:.1f}, threshold: {final_threshold:.1f})"
+                )
+                continue
+            filtered_centers.append((cx, cy))
+
+        return filtered_centers
+
+    def debug_print_centers(self, centers, title="Centers"):
+        """Print center coordinates for debugging."""
+        print(f"  {title}:")
+        for i, (cx, cy) in enumerate(centers):
+            print(f"    Subject {i}: ({cx:.1f}, {cy:.1f})")
+        if centers:
+            y_coords = [c[1] for c in centers]
+            print(
+                f"    Y-coord stats: min={min(y_coords):.1f}, max={max(y_coords):.1f}, median={np.median(y_coords):.1f}"
+            )
+        print()

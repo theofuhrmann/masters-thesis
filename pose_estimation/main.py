@@ -16,13 +16,16 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--pose", action="store_true", help="Run pose estimation")
 parser.add_argument("--post", action="store_true", help="Run post-processing")
 parser.add_argument(
-    "--artist", type=str, default=None, help="Filter by artist name"
+    "--artist", "-a", type=str, default=None, help="Filter by artist name"
 )
 parser.add_argument(
-    "--song", type=str, default=None, help="Filter by song name"
+    "--song", "-s", type=str, default=None, help="Filter by song name"
 )
 parser.add_argument(
-    "--force", action="store_true", help="Force reprocessing of existing data"
+    "--force",
+    "-f",
+    action="store_true",
+    help="Force reprocessing of existing data",
 )
 
 args = parser.parse_args()
