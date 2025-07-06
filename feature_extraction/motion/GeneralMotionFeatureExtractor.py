@@ -103,7 +103,7 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
             "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
         }
 
-    def extract(self, ignore_occluded_parts: bool = False) -> dict:
+    def extract(self, all_body_parts: bool = False, force: bool = False) -> dict:
         motion_features = {}
         for artist in tqdm(os.listdir(self.dataset_dir), desc="Artists"):
             if self.artist_filter and artist != self.artist_filter:
@@ -119,6 +119,17 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
+                if self.dataset_metadata[artist][song]["layout"] != self.instruments:
+                    print(
+                        f"Skipping {artist}/{song}: layout mismatch with instruments."
+                    )
+                    continue
+                if self.dataset_metadata[artist][song]["body_detected"] != True:
+                    print(
+                        f"Skipping {artist}/{song}: body not detected."
+                    )
+                    continue
+
                 print(f"Processing song: {song}")
                 motion_features[artist].setdefault(song, {})
                 for instrument in self.instruments:
@@ -127,7 +138,7 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                         continue
                     if os.path.exists(
                         os.path.join(inst_dir, self.output_filename)
-                    ):
+                    ) and not force:
                         print(
                             f"Skipping {artist}/{song}/{instrument}: already processed."
                         )
@@ -143,9 +154,9 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                             song, {}
                         )
                         occluded_parts = (
-                            self._get_occluded_parts(instrument, metadata)
-                            if ignore_occluded_parts
-                            else []
+                            []
+                            if all_body_parts
+                            else self._get_occluded_parts(instrument, metadata)
                         )
                         keypoints, scores, updated_body_parts_map = (
                             self._process_keypoints(

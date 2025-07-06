@@ -5,18 +5,26 @@ from audio.AudioFeatureExtractor import AudioFeatureExtractor
 from dotenv import load_dotenv
 from motion.GeneralMotionFeatureExtractor import GeneralMotionFeatureExtractor
 from motion.ViolinMotionFeatureExtractor import ViolinMotionFeatureExtractor
+from motion.VocalMotionFeatureExtractor import VocalMotionFeatureExtractor
 
 load_dotenv()
 ds = os.getenv("DATASET_PATH")
-instruments = ["vocal", "mridangam", "violin"]
+instruments = os.getenv("INSTRUMENTS").split(",")
 
 parser = argparse.ArgumentParser(description="Feature extraction script")
 parser.add_argument(
     "--extract",
     "-e",
-    choices=["motion", "audio", "both", "motion-violin"],
+    choices=["motion", "audio", "both"],
     default="both",
     help="Specify which extraction to perform: motion, audio, or both",
+)
+parser.add_argument(
+    "--motion_type",
+    "-m",
+    choices=["general", "vocal", "violin"],
+    default="general",
+    help="Specify the type of motion feature extraction: general or violin",
 )
 parser.add_argument(
     "--confidence_threshold",
@@ -26,10 +34,10 @@ parser.add_argument(
     help="Confidence threshold for motion feature extraction",
 )
 parser.add_argument(
-    "--ignore_occluded_parts",
-    "-i",
+    "--all_body_parts",
+    "-all",
     action="store_true",
-    help="Ignore occluded body parts during motion feature extraction",
+    help="Use all body parts during motion feature extraction, including occluded parts",
 )
 parser.add_argument(
     "--artist",
@@ -45,40 +53,55 @@ parser.add_argument(
     default=None,
     help="Filter by song name",
 )
+parser.add_argument(
+    "--force",
+    "-f",
+    action="store_true",
+    help="Force reprocessing of existing data",
+)
 
 args = parser.parse_args()
 
 motion_output_filename = (
-    "motion_features_normalized.json"
-    if not args.ignore_occluded_parts
-    else "motion_features_normalized_occluded.json"
+    "motion_features_all.json"
+    if args.all_body_parts
+    else "motion_features.json"
 )
 
 if args.extract in ["motion", "both"]:
-    motion_extractor = GeneralMotionFeatureExtractor(
-        dataset_dir=ds,
-        instruments=instruments,
-        artist_filter=args.artist,
-        conf_threshold=args.confidence_threshold,
-        motion_output_filename=motion_output_filename,
-        pca_output_filename=None,
-    )
-    motion_extractor.extract(ignore_occluded_parts=args.ignore_occluded_parts)
+    if args.motion_type == "violin":
+        violin_motion_extractor = ViolinMotionFeatureExtractor(
+            dataset_dir=ds,
+            artist_filter=args.artist,
+            song_filter=args.song,
+            conf_threshold=args.confidence_threshold,
+        )
+        violin_motion_extractor.extract(force=args.force)
+    elif args.motion_type == "vocal":
+        vocal_motion_extractor = VocalMotionFeatureExtractor(
+            dataset_dir=ds,
+            artist_filter=args.artist,
+            song_filter=args.song,
+            conf_threshold=args.confidence_threshold,
+        )
+        vocal_motion_extractor.extract(force=args.force)
+    elif args.motion_type == "general":
+        motion_extractor = GeneralMotionFeatureExtractor(
+            dataset_dir=ds,
+            instruments=instruments,
+            artist_filter=args.artist,
+            conf_threshold=args.confidence_threshold,
+            pca_output_filename=None,
+        )
+        motion_extractor.extract(all_body_parts=args.all_body_parts, force=args.force)
+    else:
+        raise ValueError("Invalid motion type specified. Choose 'general' or 'violin'.")
 
 if args.extract in ["audio", "both"]:
     audio_extractor = AudioFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,
-        motion_output_filename=motion_output_filename,
         artist_filter=args.artist,
+        motion_output_filename=motion_output_filename,
     )
     audio_extractor.extract()
-
-if args.extract == "motion-violin":
-    violin_motion_extractor = ViolinMotionFeatureExtractor(
-        dataset_dir=ds,
-        artist_filter=args.artist,
-        song_filter=args.song,
-        conf_threshold=args.confidence_threshold,
-    )
-    violin_motion_extractor.extract()
