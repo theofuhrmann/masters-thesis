@@ -154,5 +154,5 @@ face_parts_map = {
     "nose": list(range(27, 36)),
     "right_eye": list(range(36, 42)),
     "left_eye": list(range(42, 48)),
-    "mouth": list(range(48, 69)),
+    "mouth": list(range(48, 68)),
 }
