@@ -4,7 +4,6 @@ import sys
 
 import numpy as np
 from tqdm import tqdm
-import torch
 
 from .BaseMotionFeatureExtractor import BaseMotionFeatureExtractor
 
@@ -43,7 +42,6 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
             self.dataset_metadata = json.load(f)
 
     def _compute_features(self, keypoints: np.ndarray) -> dict:
-        print(f"Original keypoints shape: {keypoints.shape}")
         mouth_pts = keypoints[:, self.mouth_idxs, :]
 
         x = mouth_pts[:, :, 0]
@@ -84,28 +82,25 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
                 ) and not force:
                     print(f"Skipping {artist}/{song}: already processed.")
                     continue
-                # try:
-                keypoints = np.load(os.path.join(inst_dir, "face_keypoints.npy"))
-                print(f"Original keypoints shape: {keypoints.shape}")
-                keypoints = process_3ddfa_keypoints(keypoints)
-                print(f"Processed keypoints shape: {keypoints.shape}")
-                keypoints = smooth_keypoints(
-                    keypoints=keypoints,
-                    smooth_poly=self.smooth_poly,
-                    smooth_win=self.smooth_win,
-                )
-                print(f"Smoothed keypoints shape: {keypoints.shape}")
-                self.chin_idx = face_parts_map["face_contour"][8]
-                self.nose_idx = face_parts_map["nose"][6]
-                self.mouth_idxs = face_parts_map["mouth"]
+                try:
+                    keypoints = np.load(os.path.join(inst_dir, "face_keypoints.npy"))
+                    keypoints = process_3ddfa_keypoints(keypoints)
+                    keypoints = smooth_keypoints(
+                        keypoints=keypoints,
+                        smooth_poly=self.smooth_poly,
+                        smooth_win=self.smooth_win,
+                    )
+                    self.chin_idx = face_parts_map["face_contour"][8]
+                    self.nose_idx = face_parts_map["nose"][6]
+                    self.mouth_idxs = face_parts_map["mouth"]
 
-                motion_features[artist][song] = self._compute_features(keypoints)
+                    motion_features[artist][song] = self._compute_features(keypoints)
 
-                # except Exception as e:
-                #     print(
-                #         f"Motion error {artist}/{song}: {e}"
-                #     )
-                #     motion_features[artist][song] = {}
+                except Exception as e:
+                    print(
+                        f"Motion error {artist}/{song}: {e}"
+                    )
+                    motion_features[artist][song] = {}
 
         for artist, songs in motion_features.items():
             for song, features in songs.items():
