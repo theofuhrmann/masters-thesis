@@ -20,6 +20,7 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
         dataset_dir: str,
         instruments: list,
         artist_filter: str = None,
+        song_filter: str = None,
         conf_threshold: float = 5.0,
         smooth_win: int = 5,
         smooth_poly: int = 2,
@@ -35,6 +36,7 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
         )
         self.instruments = instruments
         self.artist_filter = artist_filter
+        self.song_filter = song_filter
         self.body_parts_map = body_parts_map
         self.pca_components = pca_components
         self.output_filename = motion_output_filename
@@ -103,7 +105,9 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
             "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
         }
 
-    def extract(self, all_body_parts: bool = False, force: bool = False) -> dict:
+    def extract(
+        self, all_body_parts: bool = False, force: bool = False
+    ) -> dict:
         motion_features = {}
         for artist in tqdm(os.listdir(self.dataset_dir), desc="Artists"):
             if self.artist_filter and artist != self.artist_filter:
@@ -116,18 +120,24 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
             for song in tqdm(
                 os.listdir(artist_dir), desc="Songs", leave=False
             ):
+                if self.song_filter and song != self.song_filter:
+                    continue
                 song_dir = os.path.join(artist_dir, song)
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
-                if self.dataset_metadata[artist][song]["layout"] != self.instruments:
+                if (
+                    self.dataset_metadata[artist][song]["layout"]
+                    != self.instruments
+                ):
                     print(
                         f"Skipping {artist}/{song}: layout mismatch with instruments."
                     )
                     continue
-                if self.dataset_metadata[artist][song]["body_detected"] != True:
-                    print(
-                        f"Skipping {artist}/{song}: body not detected."
-                    )
+                if (
+                    self.dataset_metadata[artist][song]["body_detected"]
+                    is not True
+                ):
+                    print(f"Skipping {artist}/{song}: body not detected.")
                     continue
 
                 print(f"Processing song: {song}")
@@ -136,9 +146,12 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                     inst_dir = os.path.join(song_dir, instrument)
                     if not os.path.isdir(inst_dir):
                         continue
-                    if os.path.exists(
-                        os.path.join(inst_dir, self.output_filename)
-                    ) and not force:
+                    if (
+                        os.path.exists(
+                            os.path.join(inst_dir, self.output_filename)
+                        )
+                        and not force
+                    ):
                         print(
                             f"Skipping {artist}/{song}/{instrument}: already processed."
                         )

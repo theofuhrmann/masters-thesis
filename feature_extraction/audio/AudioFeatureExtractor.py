@@ -13,7 +13,6 @@ class AudioFeatureExtractor:
         self,
         dataset_dir: str,
         instruments: list,
-        motion_output_filename: str,
         artist_filter: str = None,
         sr: int = 48000,
         hop_length: int = 1024,
@@ -21,10 +20,14 @@ class AudioFeatureExtractor:
         load_dotenv()
         self.dataset_dir = dataset_dir
         self.instruments = instruments
-        self.motion_output_filename = motion_output_filename
         self.artist_filter = artist_filter
         self.sr = sr
         self.hop_length = hop_length
+
+        with open(
+            os.path.join(dataset_dir, "dataset_metadata.json"), "r"
+        ) as f:
+            self.dataset_metadata = json.load(f)
 
     def _merge(self, paths: list[str]) -> tuple[np.ndarray, int]:
         y, sr = librosa.load(paths[0], sr=self.sr)
@@ -71,19 +74,6 @@ class AudioFeatureExtractor:
                             f"Skipping {artist}/{song}/{inst}: already processed."
                         )
                         continue
-                    try:
-                        with open(
-                            os.path.join(
-                                song_dir, inst, self.motion_output_filename
-                            ),
-                            "r",
-                        ) as f:
-                            motion_features = json.load(f)
-                    except FileNotFoundError:
-                        print(
-                            f"Skipping {artist}/{song}/{inst}: motion features not found."
-                        )
-                        continue
                     # find .wav files
                     if inst == "mridangam":
                         paths = [
@@ -111,24 +101,35 @@ class AudioFeatureExtractor:
                     onset = librosa.onset.onset_strength(
                         y=y, sr=sr, hop_length=self.hop_length
                     )
-                    target_frames = len(
-                        motion_features["general"]["mean_speed"]
+                    if (
+                        self.dataset_metadata[artist][song]["fps"] is None
+                        or self.dataset_metadata[artist][song]["duration"]
+                        is None
+                    ):
+                        print(
+                            f"Skipping {artist}/{song}/{inst}: missing metadata."
+                        )
+                        continue
+                    target_frames = int(
+                        self.dataset_metadata[artist][song]["fps"]
+                        * self.dataset_metadata[artist][song]["duration"]
                     )
                     audio_features[artist][song][inst] = {
                         "rms": self._resample(rms, target_frames),
                         "onset_env": self._resample(onset, target_frames),
                     }
-        # save out
+
         for artist, songs in audio_features.items():
             for song, insts in songs.items():
                 for inst, feats in insts.items():
-                    outp = os.path.join(
+                    inst_dir = os.path.join(
                         self.dataset_dir,
                         artist,
                         song,
                         inst,
-                        "audio_features.json",
                     )
+                    os.makedirs(inst_dir, exist_ok=True)
+                    outp = os.path.join(inst_dir, "audio_features.json")
                     with open(outp, "w") as f:
                         json.dump(feats, f, indent=4)
         return audio_features

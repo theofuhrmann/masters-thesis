@@ -94,14 +94,25 @@ class ViolinMotionFeatureExtractor(BaseMotionFeatureExtractor):
             ):
                 if self.song_filter and song != self.song_filter:
                     continue
+
+                if self.dataset_metadata[artist][song]["layout"] != [
+                    "violin",
+                    "vocal",
+                    "mridangam",
+                ]:
+                    continue
+
                 inst_dir = os.path.join(artist_dir, song, "violin")
                 if not os.path.isdir(inst_dir) or song.startswith("."):
                     continue
                 print(f"Processing song: {song}")
                 motion_features[artist].setdefault(song, {})
-                if os.path.exists(
-                    os.path.join(inst_dir, self.output_filename)
-                ) and not force:
+                if (
+                    os.path.exists(
+                        os.path.join(inst_dir, self.output_filename)
+                    )
+                    and not force
+                ):
                     print(f"Skipping {artist}/{song}: already processed.")
                     continue
                 # try:

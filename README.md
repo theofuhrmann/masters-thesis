@@ -73,3 +73,59 @@ Inputs and outputs:
   - <song>/<instrument>/keypoints.npy
   - <song>/<instrument>/keypoint_scores.npy
 - Songs marked with "moving_camera" in dataset_metadata.json are skipped during post-processing.
+
+## Feature extraction
+
+Extract motion (general, vocal, violin) and audio features per instrument from the processed dataset.
+
+Prerequisites:
+
+- Ensure pose post-processing has been run so each song/instrument folder contains `keypoints.npy` and `keypoint_scores.npy` (for vocal motion, `vocal/face_keypoints.npy`).
+- In your `.env`, set:
+  - `DATASET_PATH` to the dataset root.
+  - `INSTRUMENTS` as a comma-separated list in left-to-right stage order (must match each song's `layout` in `dataset_metadata.json`). Example: `INSTRUMENTS=violin,vocal,mridangam`.
+- For audio features, each song folder should contain WAV files named with the instrument (e.g., `violin_*.wav`, `vocal_*.wav`; mridangam may contain `mri` in the filename).
+
+Run commands (from `masters-thesis/`):
+
+```bash
+# Run both motion and audio feature extraction over the whole dataset
+python -m feature_extraction.main --extract both
+
+# Motion only (general per-instrument motion features)
+python -m feature_extraction.main --extract motion --motion_type general
+
+# Motion only for violin-specific features (bowing arm etc.)
+python -m feature_extraction.main --extract motion --motion_type violin
+
+# Motion only for vocal-specific facial features
+python -m feature_extraction.main --extract motion --motion_type vocal
+
+# Audio only
+python -m feature_extraction.main --extract audio
+
+# Filter by artist and song
+python -m feature_extraction.main -e motion -m general -a "Artist Name" -s "Song Title"
+
+# Force reprocessing even if outputs exist
+python -m feature_extraction.main -e both -f
+
+# Use all body parts (do not hide occluded arms for edge performers)
+python -m feature_extraction.main -e motion -m general --all_body_parts
+
+# Adjust keypoint confidence threshold (default 3.0)
+python -m feature_extraction.main -e motion -m general -ct 4.0
+```
+
+Outputs (per song/instrument unless noted):
+
+- General motion: `<song>/<instrument>/motion_features.json`
+- Violin motion: `<song>/violin/violin_motion_features.json`
+- Vocal motion: `<song>/vocal/vocal_motion_features.json`
+- Audio features: `<song>/<instrument>/audio_features.json`
+
+Notes:
+
+- General motion requires `INSTRUMENTS` to exactly match the song's `layout`; mismatches are skipped.
+- Audio features are time-aligned to video frames using `fps` and `duration` from `dataset_metadata.json`.
+- Confidence threshold masks low-confidence keypoints before computing motion features.

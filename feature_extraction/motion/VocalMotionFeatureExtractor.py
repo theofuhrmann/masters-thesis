@@ -11,7 +11,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 from tools.body_parts_map import body_parts_map, face_parts_map  # noqa: E402
-from tools.utils import smooth_keypoints, process_3ddfa_keypoints  # noqa: E402
+from tools.utils import process_3ddfa_keypoints, smooth_keypoints  # noqa: E402
 
 
 class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
@@ -47,10 +47,17 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
         x = mouth_pts[:, :, 0]
         y = mouth_pts[:, :, 1]
         mouth_area = 0.5 * np.abs(
-            np.sum(x * np.roll(y, shift=-1, axis=1) - y * np.roll(x, shift=-1, axis=1), axis=1)
+            np.sum(
+                x * np.roll(y, shift=-1, axis=1)
+                - y * np.roll(x, shift=-1, axis=1),
+                axis=1,
+            )
         )
 
-        jaw_to_nose = np.linalg.norm(keypoints[:, self.nose_idx, :] - keypoints[:, self.chin_idx, :], axis=1)
+        jaw_to_nose = np.linalg.norm(
+            keypoints[:, self.nose_idx, :] - keypoints[:, self.chin_idx, :],
+            axis=1,
+        )
 
         return {
             "mouth_area": mouth_area.tolist(),
@@ -77,13 +84,18 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
                     continue
                 print(f"Processing song: {song}")
                 motion_features[artist].setdefault(song, {})
-                if os.path.exists(
-                    os.path.join(inst_dir, self.output_filename)
-                ) and not force:
+                if (
+                    os.path.exists(
+                        os.path.join(inst_dir, self.output_filename)
+                    )
+                    and not force
+                ):
                     print(f"Skipping {artist}/{song}: already processed.")
                     continue
                 try:
-                    keypoints = np.load(os.path.join(inst_dir, "face_keypoints.npy"))
+                    keypoints = np.load(
+                        os.path.join(inst_dir, "face_keypoints.npy")
+                    )
                     keypoints = process_3ddfa_keypoints(keypoints)
                     keypoints = smooth_keypoints(
                         keypoints=keypoints,
@@ -94,12 +106,12 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
                     self.nose_idx = face_parts_map["nose"][6]
                     self.mouth_idxs = face_parts_map["mouth"]
 
-                    motion_features[artist][song] = self._compute_features(keypoints)
+                    motion_features[artist][song] = self._compute_features(
+                        keypoints
+                    )
 
                 except Exception as e:
-                    print(
-                        f"Motion error {artist}/{song}: {e}"
-                    )
+                    print(f"Motion error {artist}/{song}: {e}")
                     motion_features[artist][song] = {}
 
         for artist, songs in motion_features.items():

@@ -62,12 +62,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-motion_output_filename = (
-    "motion_features_all.json"
-    if args.all_body_parts
-    else "motion_features.json"
-)
-
 if args.extract in ["motion", "both"]:
     if args.motion_type == "violin":
         violin_motion_extractor = ViolinMotionFeatureExtractor(
@@ -90,18 +84,22 @@ if args.extract in ["motion", "both"]:
             dataset_dir=ds,
             instruments=instruments,
             artist_filter=args.artist,
+            song_filter=args.song,
             conf_threshold=args.confidence_threshold,
             pca_output_filename=None,
         )
-        motion_extractor.extract(all_body_parts=args.all_body_parts, force=args.force)
+        motion_extractor.extract(
+            all_body_parts=args.all_body_parts, force=args.force
+        )
     else:
-        raise ValueError("Invalid motion type specified. Choose 'general' or 'violin'.")
+        raise ValueError(
+            "Invalid motion type specified. Choose 'general' or 'violin'."
+        )
 
 if args.extract in ["audio", "both"]:
     audio_extractor = AudioFeatureExtractor(
         dataset_dir=ds,
         instruments=instruments,
         artist_filter=args.artist,
-        motion_output_filename=motion_output_filename,
     )
     audio_extractor.extract()
