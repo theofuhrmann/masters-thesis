@@ -156,8 +156,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.991790942673415,
-      "duration": 243.63333333333335,
+      "fps": 30,
+      "duration": 243.566667,
       "face_detected": true,
       "body_detected": true
     },
@@ -168,8 +168,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.998473204743245,
-      "duration": 654.9666666666666,
+      "fps": 30,
+      "duration": 647.0,
       "face_detected": true,
       "body_detected": true
     },
@@ -180,8 +180,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.995953874165487,
-      "duration": 494.3,
+      "fps": 30,
+      "duration": 490.0,
       "face_detected": true,
       "body_detected": true
     },
@@ -192,8 +192,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.999255573890494,
-      "duration": 2686.633333333333,
+      "fps": 30,
+      "duration": 2684.0,
       "face_detected": null,
       "body_detected": true
     },
@@ -204,8 +204,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.99210422424003,
-      "duration": 253.3,
+      "fps": 30,
+      "duration": 251.0,
       "face_detected": true,
       "body_detected": true
     },
@@ -216,8 +216,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.99463341085073,
-      "duration": 326.0916666666667,
+      "fps": 30,
+      "duration": 323.133333,
       "face_detected": true,
       "body_detected": true
     }
@@ -817,8 +817,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.99870275879962,
-      "duration": 1541.7333333333333,
+      "fps": 30.0,
+      "duration": 1538.089796,
       "face_detected": null,
       "body_detected": null
     },
@@ -830,8 +830,8 @@
         "violin"
       ],
       "moving_camera": false,
-      "fps": 29.998348199537496,
-      "duration": 605.4,
+      "fps": 30.0,
+      "duration": 602.0,
       "face_detected": null,
       "body_detected": null
     },
