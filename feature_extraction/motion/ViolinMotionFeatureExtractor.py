@@ -115,31 +115,38 @@ class ViolinMotionFeatureExtractor(BaseMotionFeatureExtractor):
                 ):
                     print(f"Skipping {artist}/{song}: already processed.")
                     continue
-                # try:
-                keypoints = np.load(os.path.join(inst_dir, "keypoints.npy"))
-                scores = np.load(os.path.join(inst_dir, "keypoint_scores.npy"))
-                metadata = self.dataset_metadata.get(artist, {}).get(song, {})
-                occluded_parts = self._get_occluded_parts("violin", metadata)
-                print(f"Original keypoints shape: {keypoints.shape}")
-                keypoints, scores, updated_body_parts_map = (
-                    self._process_keypoints(keypoints, scores, occluded_parts)
-                )
-                print(f"Processed keypoints shape: {keypoints.shape}")
-                self.shoulder_idx = updated_body_parts_map["right_arm"][0]
-                self.elbow_idx = updated_body_parts_map["right_arm"][1]
-                self.wrist_idx = updated_body_parts_map["right_arm"][2]
+                try:
+                    keypoints = np.load(
+                        os.path.join(inst_dir, "keypoints.npy")
+                    )
+                    scores = np.load(
+                        os.path.join(inst_dir, "keypoint_scores.npy")
+                    )
+                    metadata = self.dataset_metadata.get(artist, {}).get(
+                        song, {}
+                    )
+                    occluded_parts = self._get_occluded_parts(
+                        "violin", metadata
+                    )
+                    print(f"Original keypoints shape: {keypoints.shape}")
+                    keypoints, scores, updated_body_parts_map = (
+                        self._process_keypoints(
+                            keypoints, scores, occluded_parts
+                        )
+                    )
+                    print(f"Processed keypoints shape: {keypoints.shape}")
+                    self.shoulder_idx = updated_body_parts_map["right_arm"][0]
+                    self.elbow_idx = updated_body_parts_map["right_arm"][1]
+                    self.wrist_idx = updated_body_parts_map["right_arm"][2]
 
-                motion_features[artist][song] = self._compute_features(
-                    keypoints,
-                    scores,
-                    self.dataset_metadata[artist][song]["fps"],
-                )
-
-                # except Exception as e:
-                #     print(
-                #         f"Motion error {artist}/{song}: {e}"
-                #     )
-                #     motion_features[artist][song] = {}
+                    motion_features[artist][song] = self._compute_features(
+                        keypoints,
+                        scores,
+                        self.dataset_metadata[artist][song]["fps"],
+                    )
+                except Exception as e:
+                    print(f"Motion error {artist}/{song}: {e}")
+                    motion_features[artist][song] = {}
 
         for artist, songs in motion_features.items():
             for song, features in songs.items():

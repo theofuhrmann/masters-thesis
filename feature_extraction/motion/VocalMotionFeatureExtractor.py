@@ -64,6 +64,30 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
             "jaw_to_nose": jaw_to_nose.tolist(),
         }
 
+    def _mask_false_positive_frames(
+        self, artist: str, song: str, keypoints: np.ndarray
+    ) -> np.ndarray:
+        try:
+            song_meta = self.dataset_metadata.get(artist, {}).get(song, {})
+            intervals = song_meta.get("face_false_positive_frames")
+            if not intervals:
+                return keypoints
+            n_frames = keypoints.shape[0]
+            for start, end in intervals:
+                if start is None or end is None:
+                    continue
+                if end < 0 or start >= n_frames:
+                    continue
+                s = max(0, int(start))
+                e = min(n_frames - 1, int(end))
+                if s <= e:
+                    keypoints[s : e + 1] = np.nan
+        except Exception as e:
+            print(
+                f"Warning: could not apply false positive mask for {artist}/{song}: {e}"
+            )
+        return keypoints
+
     def extract(self, force: bool = False) -> dict:
         motion_features = {}
         for artist in tqdm(os.listdir(self.dataset_dir), desc="Artists"):
@@ -102,6 +126,10 @@ class VocalMotionFeatureExtractor(BaseMotionFeatureExtractor):
                         smooth_poly=self.smooth_poly,
                         smooth_win=self.smooth_win,
                     )
+                    keypoints = self._mask_false_positive_frames(
+                        artist, song, keypoints
+                    )
+
                     self.chin_idx = face_parts_map["face_contour"][8]
                     self.nose_idx = face_parts_map["nose"][6]
                     self.mouth_idxs = face_parts_map["mouth"]

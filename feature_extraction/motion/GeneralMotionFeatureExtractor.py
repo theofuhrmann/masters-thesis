@@ -126,9 +126,16 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                 if not os.path.isdir(song_dir) or song.startswith("."):
                     continue
                 if (
-                    self.dataset_metadata[artist][song]["layout"]
-                    != self.instruments
+                    self.dataset_metadata[artist][song]["layout"] is None
+                    or None in self.dataset_metadata[artist][song]["layout"]
                 ):
+                    print(
+                        f"Skipping {artist}/{song}: layout is None or contains None."
+                    )
+                    continue
+                if sorted(
+                    self.dataset_metadata[artist][song]["layout"]
+                ) != sorted(self.instruments):
                     print(
                         f"Skipping {artist}/{song}: layout mismatch with instruments."
                     )
