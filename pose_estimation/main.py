@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import torch
 from dotenv import load_dotenv
 from PoseEstimationPostProcessor import PoseEstimationPostProcessor
 from PoseEstimator import PoseEstimator
@@ -30,9 +31,11 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
 if args.pose:
     print("Processing dataset...")
-    estimator = PoseEstimator(config_file, checkpoint_file, device="cpu")
+    estimator = PoseEstimator(config_file, checkpoint_file, device=device)
     estimator.process_dataset(
         dataset_path=dataset_path,
         artist_filter=args.artist,
