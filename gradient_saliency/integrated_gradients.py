@@ -29,11 +29,11 @@ AUDIO_RATE = 16384
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
-DATASET_METADATA_PATH = os.path.join(
-    DATASET_PATH, "dataset_metadata_test.json"
-)
+DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata.json")
 
-speech_mean_face = torch.from_numpy(np.load("speech_mean_face.npy")).float()
+speech_mean_face = torch.from_numpy(
+    np.load("../tools/speech_mean_face.npy")
+).float()
 
 
 def calculate_saliency(model, sample, device="cpu"):
@@ -203,10 +203,23 @@ def main(args):
         model_type=model_type,
         audio_type=AudioType.VOCAL,
         metadata_path=DATASET_METADATA_PATH,
+        layout=(
+            ["violin", "vocal", "mridangam"]
+            if model_type == ModelType.BODY_VIOLIN_FUSION
+            else None
+        ),
+        keep_highest_correlation_chunks=True,
     )
 
+    # Adjust pin_memory based on device
+    use_pin_memory = DEVICE == "cuda"  # Only use pin_memory for CUDA
+
     dataloader = DataLoader(
-        dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=16,
+        pin_memory=use_pin_memory,
     )
 
     print(f"Loading {args.model} model to {DEVICE}...")
@@ -229,7 +242,7 @@ def main(args):
     )
 
     print(f"Calculating gradient saliency for all {len(dataset)} samples...")
-    for sample in tqdm(dataloader):
+    for i, sample in enumerate(tqdm(dataloader)):
         artist_name = sample["artist"][0]
         song_name = sample["song"][0]
         face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
