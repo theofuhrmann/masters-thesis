@@ -134,7 +134,9 @@ class GeneralMotionFeatureExtractor(BaseMotionFeatureExtractor):
                     )
                     continue
                 if (
-                    self.dataset_metadata[artist][song]["body_detected"]
+                    self.dataset_metadata[artist][song][
+                        "correct_body_detection"
+                    ]
                     is not True
                 ):
                     print(f"Skipping {artist}/{song}: body not detected.")
