@@ -74,6 +74,34 @@ Inputs and outputs:
   - <song>/<instrument>/keypoint_scores.npy
 - Songs marked with "moving_camera" in dataset_metadata.json are skipped during post-processing.
 
+## Dataset metadata
+
+A reference metadata file is provided at `masters-thesis/dataset_analysis/dataset_metadata.json`. You can copy this file to your dataset root (as `dataset_metadata.json`) and modify it to match your media. Each top-level key is an artist; each nested key is a song.
+
+Structure:
+
+```
+{
+  "Artist Name": {
+    "Song Title": {
+      "layout": ["instrument1", "instrument2", ...],     # Left-to-right stage order (must match INSTRUMENTS)
+      "moving_camera": true|false|null,                  # If true, some processing steps may skip the song
+      "fps": 30.0,                                       # Video frame rate
+      "duration": 1234.0333,                             # Duration in seconds (float)
+      "correct_body_detection": true|false|null,         # QC flag (optional)
+      "face_false_positive_frames": []                   # Frame indices to ignore for facial motion (optional)
+    },
+    ... more songs ...
+  },
+  ... more artists ...
+}
+```
+
+Notes:
+- Songs with null `layout`, `fps`, or `duration` are skipped.
+- Optional flags (`correct_body_detection`, `face_false_positive_frames`) are used for filtering / cleaning but can be omitted.
+- Additional custom fields are ignored by the current code.
+
 ## Feature extraction
 
 Extract motion (general, vocal, violin) and audio features per instrument from the processed dataset.
