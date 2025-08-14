@@ -940,7 +940,7 @@
       "moving_camera": false,
       "fps": 30.0,
       "duration": 263.46666666666664,
-      "correct_body_detection": null,
+      "correct_body_detection": true,
       "face_false_positive_frames": []
     },
     "Sri Kantimatim": {
@@ -952,7 +952,7 @@
       "moving_camera": false,
       "fps": 30.0,
       "duration": 1499.6,
-      "correct_body_detection": null,
+      "correct_body_detection": true,
       "face_false_positive_frames": []
     },
     "Thillai Ambalathanai": {
@@ -964,7 +964,7 @@
       "moving_camera": false,
       "fps": 30.0,
       "duration": 320.03333333333336,
-      "correct_body_detection": null,
+      "correct_body_detection": true,
       "face_false_positive_frames": []
     },
     "Thillana": {
@@ -976,7 +976,7 @@
       "moving_camera": false,
       "fps": 30.0,
       "duration": 274.03333333333336,
-      "correct_body_detection": null,
+      "correct_body_detection": true,
       "face_false_positive_frames": []
     },
     "Vara Narada": {
@@ -988,7 +988,7 @@
       "moving_camera": false,
       "fps": 30.0,
       "duration": 173.6,
-      "correct_body_detection": null,
+      "correct_body_detection": true,
       "face_false_positive_frames": []
     }
   },
