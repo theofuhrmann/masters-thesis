@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from dotenv import load_dotenv
-from torch.cuda.amp import autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -82,7 +81,6 @@ def integrated_gradients(
     baseline: baseline tensor (same shape as input_tensor), defaults to appropriate baseline
     steps: number of integration steps
     """
-    # Make sure input_tensor doesn't already have requires_grad to avoid issues
     input_tensor = input_tensor.detach().clone()
 
     if baseline is None:
@@ -95,16 +93,9 @@ def integrated_gradients(
                 .detach()
                 .to(device)
             )
-            # Add a small amount of noise for gradient stability
-            baseline += torch.randn_like(baseline).to(device) * 0.01
-            print(
-                f"face baseline shape: {baseline.shape}, mean: {baseline.mean().item()}, original mean: {input_tensor.mean().item()}"
-            )
         else:
-            # For normalized inputs (body keypoints, audio), zero is appropriate
             baseline = torch.zeros_like(input_tensor).to(device)
 
-    # Move sample tensors to device once
     mix_orig = sample["mix"].float().to(device)
     face_orig = (
         torch.nan_to_num(sample["face"].float(), nan=0.0).to(device)
@@ -118,16 +109,13 @@ def integrated_gradients(
     )
     target_orig = sample["target"].float().to(device)
 
-    # Interpolation coefficients
     alphas = torch.linspace(0, 1, steps).to(device)
     accumulated_gradients = torch.zeros_like(input_tensor).to(device)
 
-    for alpha in tqdm(alphas, desc=f"Calculating IG for {input_name}"):
-        # Interpolate between baseline and input
+    for alpha in alphas:
         interpolated_input = baseline + alpha * (input_tensor - baseline)
         interpolated_input.requires_grad_(True)
 
-        # Prepare inputs for forward
         mix, face, body = mix_orig, face_orig, body_orig
 
         if input_name == "mix":
@@ -139,36 +127,29 @@ def integrated_gradients(
 
         model.zero_grad()
 
-        with autocast():
-            if isinstance(model, VoViT_f):
-                out = model.forward(mix, face)
-            elif isinstance(model, VoViT_b):
-                out = model.forward(mix, body)
-            elif isinstance(model, VoViT_fb):
-                out = model.forward(mix, face, body)
-            else:
-                raise TypeError("Invalid model type")
+        if isinstance(model, VoViT_f):
+            out = model.forward(mix, face)
+        elif isinstance(model, VoViT_b):
+            out = model.forward(mix, body)
+        elif isinstance(model, VoViT_fb):
+            out = model.forward(mix, face, body)
+        else:
+            raise TypeError("Invalid model type")
 
-            loss = F.mse_loss(out["estimated_wav"], target_orig)
+        loss = F.mse_loss(out["estimated_wav"], target_orig)
 
         scale_factor = 2**16
         (loss * scale_factor).float().backward()
 
         grad = interpolated_input.grad
         if grad is not None:
-            # Handle nan/inf values and ensure we don't have gradients that are exactly zero
             grad = torch.nan_to_num(grad, nan=0.0, posinf=1.0, neginf=-1.0)
-            # Add a very small epsilon to avoid complete zeros
-            grad += torch.randn_like(grad).to(device) * 1e-6
             accumulated_gradients += grad.detach()
         else:
-            # If grad is None, it's likely due to no gradient flow to this input
-            # Log this but continue with the computation
             print(
                 f"Warning: No gradient for {input_name} at alpha={alpha.item():.2f}"
             )
 
-        # Free up memory
         del grad, loss, out, interpolated_input
         if device == "cuda":
             torch.cuda.empty_cache()
@@ -179,11 +160,7 @@ def integrated_gradients(
     if input_name == "mix":
         return integrated_grad.abs().mean()
     elif input_name == "face":
-        # For face keypoints, use a different aggregation method to preserve more information
-        # Return the mean of absolute values across frames, keeping landmark dimensions
-        return integrated_grad.abs().mean(
-            dim=0
-        )  # Only average across batch dimension
+        return integrated_grad.abs().mean(dim=(0, 1, 2))
     else:
         return integrated_grad.abs().mean(dim=(0, 1, 2))
 
@@ -196,31 +173,11 @@ def main(args):
     }
     model_type = model_type_map[args.model]
 
-    dataset = SaragaAudiovisualDataset(
-        data_path=DATASET_PATH,
-        audiorate=AUDIO_RATE,
-        chunk_duration=DURATION,
-        model_type=model_type,
-        audio_type=AudioType.VOCAL,
-        metadata_path=DATASET_METADATA_PATH,
-        layout=(
-            ["violin", "vocal", "mridangam"]
-            if model_type == ModelType.BODY_VIOLIN_FUSION
-            else None
-        ),
-        keep_highest_correlation_chunks=True,
-    )
+    results_dir = f"results/integrated_gradients_new_baseline_{args.model}"
+    os.makedirs(results_dir, exist_ok=True)
 
-    # Adjust pin_memory based on device
-    use_pin_memory = DEVICE == "cuda"  # Only use pin_memory for CUDA
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=1,
-        shuffle=False,
-        num_workers=16,
-        pin_memory=use_pin_memory,
-    )
+    with open(DATASET_METADATA_PATH, "r") as f:
+        full_metadata = json.load(f)
 
     print(f"Loading {args.model} model to {DEVICE}...")
     if model_type == ModelType.FACE:
@@ -231,43 +188,138 @@ def main(args):
         model = VoViT_fb(pretrained=True, debug={}).to(DEVICE)
     model.eval()
 
-    results = defaultdict(
-        lambda: defaultdict(
-            lambda: {
-                "face_saliency": [],
-                "body_saliency": [],
-                "mix_saliency": [],
-            }
-        )
-    )
+    total_combinations = sum(len(songs) for songs in full_metadata.values())
+    processed = 0
+    
+    temp_metadata_path = "temp_metadata_single_song.json"
+    
+    for artist_name, songs in full_metadata.items():
+        for song_name in songs:
+            processed += 1
+            
+            safe_artist_name = artist_name.replace("/", "_").replace(" ", "_")
+            safe_song_name = song_name.replace("/", "_").replace(" ", "_")
+            output_path = os.path.join(results_dir, f"{safe_artist_name}_{safe_song_name}.json")
+            
+            if os.path.exists(output_path):
+                print(f"\nSkipping {processed}/{total_combinations}: {artist_name} - {song_name} (already processed)")
+                continue
+            
+            print(f"\nProcessing {processed}/{total_combinations}: {artist_name} - {song_name}")
+            
+            temp_metadata = {artist_name: {song_name: songs[song_name]}}
+            
+            with open(temp_metadata_path, "w") as f:
+                json.dump(temp_metadata, f)
+            
+            try:
+                dataset = SaragaAudiovisualDataset(
+                    data_path=DATASET_PATH,
+                    audiorate=AUDIO_RATE,
+                    chunk_duration=DURATION,
+                    model_type=model_type,
+                    audio_type=AudioType.VOCAL,
+                    metadata_path=temp_metadata_path,
+                    layout=(
+                        ["violin", "vocal", "mridangam"]
+                        if model_type == ModelType.BODY_VIOLIN_FUSION
+                        else None
+                    ),
+                    keep_highest_correlation_chunks=True,
+                    correlation_filter_percentage=args.correlation_filter_percentage,
+                    correlation_filter_top=args.correlation_filter_top,
+                )
+                
+                if len(dataset.items) == 0:
+                    print(f"  Skipping {artist_name} - {song_name}: no valid chunks")
+                    continue
+                
+                use_pin_memory = DEVICE == "cuda"
+                
+                dataloader = DataLoader(
+                    dataset,
+                    batch_size=1,
+                    shuffle=False,
+                    num_workers=8,
+                    pin_memory=use_pin_memory,
+                )
+                
+                face_saliencies = []
+                body_saliencies = []
+                mix_saliencies = []
+                
+                print(f"  Processing {len(dataset)} chunks...")
+                for i, sample in enumerate(tqdm(dataloader, desc=f"  Chunks")):
+                    try:
+                        face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
+                        
+                        if face_sal is not None:
+                            face_saliencies.append(face_sal.detach().cpu())
+                        if body_sal is not None:
+                            body_saliencies.append(body_sal.detach().cpu())
+                        if mix_sal is not None:
+                            mix_saliencies.append(mix_sal.detach().cpu().item())
+                        
+                        # Clear CUDA cache after each chunk
+                        if DEVICE == "cuda":
+                            torch.cuda.empty_cache()
+                            
+                    except torch.cuda.OutOfMemoryError:
+                        print(f"    CUDA OOM error on chunk {i}, skipping...")
+                        if DEVICE == "cuda":
+                            torch.cuda.empty_cache()
+                        continue
+                    except Exception as e:
+                        print(f"    Error processing chunk {i}: {e}")
+                        continue
+                
+                song_results = {
+                    "face_saliency": None,
+                    "body_saliency": None,
+                    "mix_saliency": None,
+                }
+                
+                if face_saliencies:
+                    stacked_face = torch.stack(face_saliencies, dim=0)  # Shape: (num_chunks, 68)
+                    averaged_face = stacked_face.mean(dim=0)  # Shape: (68,)
+                    song_results["face_saliency"] = averaged_face.tolist()
+                
+                if body_saliencies:
+                    stacked_body = torch.stack(body_saliencies, dim=0)  # Shape: (num_chunks, 55)
+                    averaged_body = stacked_body.mean(dim=0)  # Shape: (55,)
+                    song_results["body_saliency"] = averaged_body.tolist()
+                
+                if mix_saliencies:
+                    averaged_mix = sum(mix_saliencies) / len(mix_saliencies)
+                    song_results["mix_saliency"] = averaged_mix
+                
+                with open(output_path, "w") as f:
+                    json.dump({
+                        "artist": artist_name,
+                        "song": song_name,
+                        "results": song_results
+                    }, f, indent=4)
+                
+                print(f"  Saved results to {output_path}")
+                
+            except Exception as e:
+                print(f"  Error processing {artist_name} - {song_name}: {e}")
+                continue
+            finally:
+                if 'dataset' in locals():
+                    del dataset
+                if 'dataloader' in locals():
+                    del dataloader
+                if 'song_results' in locals():
+                    del song_results
+                if DEVICE == "cuda":
+                    torch.cuda.empty_cache()
+    
+    if os.path.exists(temp_metadata_path):
+        os.remove(temp_metadata_path)
 
-    print(f"Calculating gradient saliency for all {len(dataset)} samples...")
-    for i, sample in enumerate(tqdm(dataloader)):
-        artist_name = sample["artist"][0]
-        song_name = sample["song"][0]
-        face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
-
-        if face_sal is not None:
-            results[artist_name][song_name]["face_saliency"].append(
-                face_sal.detach().cpu().tolist()
-            )
-        if body_sal is not None:
-            results[artist_name][song_name]["body_saliency"].append(
-                body_sal.detach().cpu().tolist()
-            )
-        if mix_sal is not None:
-            results[artist_name][song_name]["mix_saliency"].append(
-                mix_sal.detach().cpu().item()
-            )
-
-    output_path = (
-        f"results/integrated_gradients_new_baseline_{args.model}.json"
-    )
-    print(f"Saving results to {output_path}")
-    with open(output_path, "w") as f:
-        json.dump(results, f, indent=4)
-
-    print("\nDone.")
+    print(f"\nDone. Results saved in {results_dir}/")
+    print("To combine all results into a single file, you can run a separate script.")
 
 
 if __name__ == "__main__":
@@ -282,11 +334,16 @@ if __name__ == "__main__":
         help="Type of VoViT model to use",
     )
     parser.add_argument(
-        "--loss",
-        type=str,
-        default="mse",
-        choices=["mse", "sdr", "sir", "sar"],
-        help="Loss function to use for gradient saliency calculation",
+        "--correlation-filter-percentage",
+        type=float,
+        default=0.1,
+        help="Percentage of chunks to keep when filtering by correlation (0.0-1.0, default: 0.1 for 10%%)",
+    )
+    parser.add_argument(
+        "--correlation-filter-top",
+        action="store_true",
+        default=True,
+        help="Keep top correlation chunks (default: True)",
     )
     args = parser.parse_args()
     main(args)
