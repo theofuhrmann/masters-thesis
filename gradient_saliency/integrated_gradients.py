@@ -173,8 +173,9 @@ def main(args):
     }
     model_type = model_type_map[args.model]
 
-    results_dir = f"results/integrated_gradients_new_baseline_{args.model}"
+    results_dir = f"results/integrated_gradients_{'top' if args.correlation_filter_top else 'bottom'}_{int(args.correlation_filter_percentage * 100)}_{args.model}"
     os.makedirs(results_dir, exist_ok=True)
+    print(f"Results will be saved in: {results_dir}")
 
     with open(DATASET_METADATA_PATH, "r") as f:
         full_metadata = json.load(f)
@@ -344,6 +345,12 @@ if __name__ == "__main__":
         action="store_true",
         default=True,
         help="Keep top correlation chunks (default: True)",
+    )
+    parser.add_argument(
+        "--correlation-filter-bottom",
+        action="store_false",
+        dest="correlation_filter_top",
+        help="Keep worst correlation chunks",
     )
     args = parser.parse_args()
     main(args)
