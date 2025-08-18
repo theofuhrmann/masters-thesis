@@ -1,4 +1,8 @@
-# Code for my master's thesis
+# Code for: Understanding Audio Source Separation in Carnatic Music with Multimodal Data
+
+This repository contains the code used for all of the data processing and analysis used for my thesis for the Sound and Music Computing master's at Universitat Pompeu Fabra.
+
+Disclaimer: The code regarding the source separation models is not included in this repository and is not public yet. Meaning that the code interacting with the models will not work.
 
 ## Installation
 
@@ -157,3 +161,167 @@ Notes:
 - General motion requires `INSTRUMENTS` to exactly match the song's `layout`; mismatches are skipped.
 - Audio features are time-aligned to video frames using `fps` and `duration` from `dataset_metadata.json`.
 - Confidence threshold masks low-confidence keypoints before computing motion features.
+
+## Visualization
+
+The visualization module creates videos with pose estimation overlays to visually inspect the quality of pose detection and feature extraction.
+
+Prerequisites:
+
+- Ensure pose post-processing has been completed so keypoints are available for each instrument.
+- For feature visualization, ensure motion and audio features have been extracted.
+- FFmpeg must be installed on your system for audio processing.
+
+Run commands (from `masters-thesis/`):
+
+```bash
+# Generate visualization for a specific artist and song (20-second clip by default)
+python -m visualization.main -a "Artist Name" -s "Song Title"
+
+# Specify custom time range (start and end times in seconds)
+python -m visualization.main -a "Artist Name" -s "Song Title" -st 10.0 -et 30.0
+
+# Generate visualization without audio
+python -m visualization.main -a "Artist Name" -s "Song Title" -st 0 -et 20
+
+# Generate visualization without motion/audio features overlay
+python -m visualization.main -a "Artist Name" -s "Song Title" --no_features
+
+# Add audio to the output video
+python -m visualization.main -a "Artist Name" -s "Song Title" --add_audio
+```
+
+Outputs:
+
+- Video file: `<song>/<start_time>_<end_time>_test.mp4` containing the original video with pose skeleton overlays
+
+Features:
+
+- **Skeleton overlay**: Shows detected body pose with colored lines connecting keypoints
+- **Instrument-specific colors**: Each instrument gets a distinct color (vocal: green, violin: blue, mridangam: red)
+- **Confidence filtering**: Only keypoints above the confidence threshold (default 3.0) are displayed
+- **Occlusion handling**: Hides occluded body parts for edge performers (arms/hands)
+- **Feature visualization**: When available, displays real-time motion and audio features as colored bars
+- **Correlation highlighting**: Highlights body parts that correlate with audio during specific time windows
+- **PCA contribution**: Keypoint brightness indicates contribution to the first principal component
+
+Notes:
+
+- Lower body keypoints (legs, feet) are hidden by default to focus on upper body performance gestures
+- Face keypoints are shown for vocal performers when facial pose data is available
+- The tool automatically finds the first .mov file in each song directory
+- Output videos maintain the original frame rate and resolution
+
+## Gradient Saliency Analysis
+
+The gradient saliency module computes feature importance for VoViT models to understand which keypoints and audio features contribute most to source separation performance.
+
+Prerequisites:
+
+- Set `VOVIT_PATH` in your `.env` to point to the VoViT repository location
+- Ensure the dataset has been processed with pose estimation and feature extraction
+- CUDA-capable GPU recommended for faster processing
+
+Available methods:
+
+- **Vanilla gradients** (`gradient_saliency.py`): Standard gradient-based saliency
+- **Gradient × Input** (`gradient_input_saliency.py`): Element-wise product of gradients and inputs
+- **Integrated Gradients** (`integrated_gradients.py`): More robust attribution method using path integration
+
+Run commands (from `masters-thesis/`):
+
+```bash
+# Integrated gradients (recommended) - face+body model
+python -m gradient_saliency.integrated_gradients --model face_body
+
+# Face-only model
+python -m gradient_saliency.integrated_gradients --model face
+
+# Body-only model  
+python -m gradient_saliency.integrated_gradients --model body
+
+# Filter to top 10% correlation chunks only
+python -m gradient_saliency.integrated_gradients --model face_body --correlation-filter-percentage 0.1 --correlation-filter-top
+
+# Filter to bottom 10% correlation chunks
+python -m gradient_saliency.integrated_gradients --model face_body --correlation-filter-percentage 0.1 --correlation-filter-bottom
+
+# Vanilla gradients (faster but less robust)
+python -m gradient_saliency.gradient_saliency --model face_body
+
+# Gradient × Input method
+python -m gradient_saliency.gradient_input_saliency --model face_body
+```
+
+Outputs:
+
+- Integrated gradients: `results/integrated_gradients_[top/bottom]_[percentage]_[model]/[artist]_[song].json`
+- Other methods: `saliency_averages_[model].json` or `saliency_scores/[artist]_[song]_[model].json`
+
+Features:
+
+- **Multi-modal attribution**: Computes importance for both visual (face/body keypoints) and audio (mix) inputs
+- **Correlation filtering**: Analyzes chunks with highest/lowest audio-visual correlation
+- **Baseline selection**: Uses speech mean face for facial keypoints, zeros for other modalities
+- **Per-keypoint granularity**: Individual importance scores for each of the 68 face or 55 body keypoints
+- **Robustness**: Integrated gradients method reduces noise compared to vanilla gradients
+
+Notes:
+
+- Integrated gradients uses 25 integration steps by default; increase `--num_steps` for more precision
+- Results are saved in JSON files with per-keypoint importance scores
+
+## Attention Analysis
+
+The attention analysis module extracts cross-modal attention weights from VoViT models to understand how audio and visual features interact during source separation.
+
+Prerequisites:
+
+- Set `VOVIT_PATH` in your `.env` to point to the VoViT repository location
+- Ensure the dataset has been processed with pose estimation and feature extraction
+- CUDA-capable GPU recommended for faster processing
+
+Run commands (from `masters-thesis/`):
+
+```bash
+# Analyze vocal model attention (audio-to-face and face-to-audio)
+python -m attention_analysis.attention_analysis --model vocal
+
+# Analyze violin model attention (audio-to-body and body-to-audio)
+python -m attention_analysis.attention_analysis --model violin
+```
+
+Outputs:
+
+- Attention scores: `results/attention_scores_[model]_test_new.json`
+
+Features:
+
+- **Cross-modal attention**: Captures how much audio features attend to visual features and vice versa
+- **Temporal alignment**: Provides attention scores at each time step in the 4-second chunks
+- **Bidirectional analysis**: Computes both audio→video and video→audio attention weights
+- **Per-song aggregation**: Collects all attention patterns for each artist-song combination
+
+Data structure:
+
+```json
+{
+  "Artist Name": {
+    "Song Title": [
+      {
+        "audio_attention": [float, ...],   // How much each audio timestep attends to video
+        "video_attention": [float, ...]    // How much audio attends to each video timestep
+      },
+      ... // One entry per 4-second chunk
+    ]
+  }
+}
+```
+
+Notes:
+
+- Vocal model uses facial keypoints; violin model uses body keypoints
+- Attention weights are averaged across attention heads for interpretability
+- Processing is done in 4-second chunks matching the model's training configuration
+- Results can be used to identify moments of high audio-visual interaction
+
