@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import sys
-from collections import defaultdict
 
 import numpy as np
 import torch
@@ -191,28 +190,34 @@ def main(args):
 
     total_combinations = sum(len(songs) for songs in full_metadata.values())
     processed = 0
-    
+
     temp_metadata_path = "temp_metadata_single_song.json"
-    
+
     for artist_name, songs in full_metadata.items():
         for song_name in songs:
             processed += 1
-            
+
             safe_artist_name = artist_name.replace("/", "_").replace(" ", "_")
             safe_song_name = song_name.replace("/", "_").replace(" ", "_")
-            output_path = os.path.join(results_dir, f"{safe_artist_name}_{safe_song_name}.json")
-            
+            output_path = os.path.join(
+                results_dir, f"{safe_artist_name}_{safe_song_name}.json"
+            )
+
             if os.path.exists(output_path):
-                print(f"\nSkipping {processed}/{total_combinations}: {artist_name} - {song_name} (already processed)")
+                print(
+                    f"\nSkipping {processed}/{total_combinations}: {artist_name} - {song_name} (already processed)"
+                )
                 continue
-            
-            print(f"\nProcessing {processed}/{total_combinations}: {artist_name} - {song_name}")
-            
+
+            print(
+                f"\nProcessing {processed}/{total_combinations}: {artist_name} - {song_name}"
+            )
+
             temp_metadata = {artist_name: {song_name: songs[song_name]}}
-            
+
             with open(temp_metadata_path, "w") as f:
                 json.dump(temp_metadata, f)
-            
+
             try:
                 dataset = SaragaAudiovisualDataset(
                     data_path=DATASET_PATH,
@@ -230,13 +235,15 @@ def main(args):
                     correlation_filter_percentage=args.correlation_filter_percentage,
                     correlation_filter_top=args.correlation_filter_top,
                 )
-                
+
                 if len(dataset.items) == 0:
-                    print(f"  Skipping {artist_name} - {song_name}: no valid chunks")
+                    print(
+                        f"  Skipping {artist_name} - {song_name}: no valid chunks"
+                    )
                     continue
-                
+
                 use_pin_memory = DEVICE == "cuda"
-                
+
                 dataloader = DataLoader(
                     dataset,
                     batch_size=1,
@@ -244,27 +251,31 @@ def main(args):
                     num_workers=8,
                     pin_memory=use_pin_memory,
                 )
-                
+
                 face_saliencies = []
                 body_saliencies = []
                 mix_saliencies = []
-                
+
                 print(f"  Processing {len(dataset)} chunks...")
-                for i, sample in enumerate(tqdm(dataloader, desc=f"  Chunks")):
+                for i, sample in enumerate(tqdm(dataloader, desc="  Chunks")):
                     try:
-                        face_sal, body_sal, mix_sal = calculate_saliency(model, sample, DEVICE)
-                        
+                        face_sal, body_sal, mix_sal = calculate_saliency(
+                            model, sample, DEVICE
+                        )
+
                         if face_sal is not None:
                             face_saliencies.append(face_sal.detach().cpu())
                         if body_sal is not None:
                             body_saliencies.append(body_sal.detach().cpu())
                         if mix_sal is not None:
-                            mix_saliencies.append(mix_sal.detach().cpu().item())
-                        
+                            mix_saliencies.append(
+                                mix_sal.detach().cpu().item()
+                            )
+
                         # Clear CUDA cache after each chunk
                         if DEVICE == "cuda":
                             torch.cuda.empty_cache()
-                            
+
                     except torch.cuda.OutOfMemoryError:
                         print(f"    CUDA OOM error on chunk {i}, skipping...")
                         if DEVICE == "cuda":
@@ -273,54 +284,64 @@ def main(args):
                     except Exception as e:
                         print(f"    Error processing chunk {i}: {e}")
                         continue
-                
+
                 song_results = {
                     "face_saliency": None,
                     "body_saliency": None,
                     "mix_saliency": None,
                 }
-                
+
                 if face_saliencies:
-                    stacked_face = torch.stack(face_saliencies, dim=0)  # Shape: (num_chunks, 68)
+                    stacked_face = torch.stack(
+                        face_saliencies, dim=0
+                    )  # Shape: (num_chunks, 68)
                     averaged_face = stacked_face.mean(dim=0)  # Shape: (68,)
                     song_results["face_saliency"] = averaged_face.tolist()
-                
+
                 if body_saliencies:
-                    stacked_body = torch.stack(body_saliencies, dim=0)  # Shape: (num_chunks, 55)
+                    stacked_body = torch.stack(
+                        body_saliencies, dim=0
+                    )  # Shape: (num_chunks, 55)
                     averaged_body = stacked_body.mean(dim=0)  # Shape: (55,)
                     song_results["body_saliency"] = averaged_body.tolist()
-                
+
                 if mix_saliencies:
                     averaged_mix = sum(mix_saliencies) / len(mix_saliencies)
                     song_results["mix_saliency"] = averaged_mix
-                
+
                 with open(output_path, "w") as f:
-                    json.dump({
-                        "artist": artist_name,
-                        "song": song_name,
-                        "results": song_results
-                    }, f, indent=4)
-                
+                    json.dump(
+                        {
+                            "artist": artist_name,
+                            "song": song_name,
+                            "results": song_results,
+                        },
+                        f,
+                        indent=4,
+                    )
+
                 print(f"  Saved results to {output_path}")
-                
+
             except Exception as e:
                 print(f"  Error processing {artist_name} - {song_name}: {e}")
                 continue
             finally:
-                if 'dataset' in locals():
+                if "dataset" in locals():
                     del dataset
-                if 'dataloader' in locals():
+                if "dataloader" in locals():
                     del dataloader
-                if 'song_results' in locals():
+                if "song_results" in locals():
                     del song_results
                 if DEVICE == "cuda":
                     torch.cuda.empty_cache()
-    
+
     if os.path.exists(temp_metadata_path):
         os.remove(temp_metadata_path)
 
     print(f"\nDone. Results saved in {results_dir}/")
-    print("To combine all results into a single file, you can run a separate script.")
+    print(
+        "To combine all results into a single file, you can run a separate script."
+    )
 
 
 if __name__ == "__main__":
