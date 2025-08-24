@@ -2,14 +2,12 @@ import argparse
 import json
 import os
 import sys
-from collections import defaultdict
 import numpy as np
 
 import torch
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import librosa
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
@@ -30,6 +28,61 @@ DURATION = 4.0
 DATASET_PATH = os.getenv("DATASET_PATH")
 DATASET_METADATA_PATH = os.path.join(DATASET_PATH, "dataset_metadata.json")
 
+# --- Added utility for safe filenames ---
+import re
+
+def _sanitize_name(name: str) -> str:
+    name = name.strip().replace("/", "-")
+    name = re.sub(r"[^A-Za-z0-9_.\- ]+", "_", name)
+    name = re.sub(r"\s+", "_", name)
+    return name[:100]  # limit length
+
+def si_sdr(est: torch.Tensor, ref: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    est = est.float().flatten()
+    ref = ref.float().flatten()
+    ref_zm = ref - ref.mean()
+    est_zm = est - est.mean()
+    s_target = (torch.dot(est_zm, ref_zm) / (ref_zm.pow(2).sum() + eps)) * ref_zm
+    e_noise = est_zm - s_target
+    ratio = (s_target.pow(2).sum() + eps) / (e_noise.pow(2).sum() + eps)
+    return 10 * torch.log10(ratio + eps)
+
+
+# Cache for precomputed RMS values
+SONG_RMS_CACHE = {}
+SONG_ONSET_ENV_CACHE = {}
+
+def _load_precomputed_rms(artist: str, song: str):
+    """Load precomputed RMS (array of frame-wise values) with no fallback logic."""
+    key = (artist, song)
+    if key in SONG_RMS_CACHE:
+        return SONG_RMS_CACHE[key]
+    features_path = os.path.join(DATASET_PATH, artist, song, args.model, "audio_features.json")
+    if not os.path.isfile(features_path):
+        SONG_RMS_CACHE[key] = None
+        return None
+    with open(features_path, "r") as f:
+        data = json.load(f)
+    rms_vals = data.get("rms")  # expected to be a direct list/array
+    arr = np.asarray(rms_vals, dtype=np.float32) if rms_vals is not None else None
+    SONG_RMS_CACHE[key] = arr
+    return arr
+
+def _load_precomputed_onset_env(artist: str, song: str):
+    """Load precomputed onset_env (array of frame-wise values)."""
+    key = (artist, song)
+    if key in SONG_ONSET_ENV_CACHE:
+        return SONG_ONSET_ENV_CACHE[key]
+    features_path = os.path.join(DATASET_PATH, artist, song, args.model, "audio_features.json")
+    if not os.path.isfile(features_path):
+        SONG_ONSET_ENV_CACHE[key] = None
+        return None
+    with open(features_path, "r") as f:
+        data = json.load(f)
+    onset_vals = data.get("onset_env")
+    arr = np.asarray(onset_vals, dtype=np.float32) if onset_vals is not None else None
+    SONG_ONSET_ENV_CACHE[key] = arr
+    return arr
 
 def analyze_film_modulation(model, sample, device, debug=False, meta=None, debug_file_handle=None):
     """
@@ -125,9 +178,6 @@ def analyze_film_modulation(model, sample, device, debug=False, meta=None, debug
     scale_dev_from_unity = float(delta_abs.mean())
     bias_mag = float(np.mean(np.abs(bias)))
 
-    recomputed = float(np.abs(scale - 1.0).mean())
-    consistent = abs(recomputed - scale_dev_from_unity) < 1e-8
-
     boosted = np.where(feature_mean_scale > feature_mean_scale.mean() + feature_mean_scale.std())[0].tolist()
     suppressed = np.where(feature_mean_scale < feature_mean_scale.mean() - feature_mean_scale.std())[0].tolist()
     pos_bias = np.where(feature_mean_bias > feature_mean_bias.mean() + feature_mean_bias.std())[0].tolist()
@@ -150,44 +200,67 @@ def analyze_film_modulation(model, sample, device, debug=False, meta=None, debug
         except Exception:
             gamma_attention_focus_corr = None
 
-    # --- Temporal correlation with audio RMS ---
-    gamma_audio_corr = None
-    if audio is not None:
-        hop_length = max(1, audio.shape[-1] // gamma_t.shape[1])
-        audio_np = audio.detach().cpu().numpy().squeeze()
-        rms = librosa.feature.rms(y=audio_np, hop_length=hop_length, frame_length=hop_length*2).squeeze()
-        min_len = min(len(rms), gamma_t.shape[1])
-        gamma_mean = np.abs(raw_gamma_t.numpy()[0, :min_len, :]).mean(axis=-1)
-        if np.std(gamma_mean) > 0 and np.std(rms[:min_len]) > 0:
-            gamma_audio_corr = float(np.corrcoef(gamma_mean, rms[:min_len])[0, 1])
+    # --- Temporal correlation with audio RMS & onset_env ---
+    gamma_rms_corr = None
+    gamma_onset_env_corr = None
+    rms_source = None
+    onset_env_source = None
+    artist_meta = (meta or {}).get("artist")
+    song_meta = (meta or {}).get("song")
+    pre_rms = None
+    pre_onset = None
+    if artist_meta and song_meta:
+        pre_rms = _load_precomputed_rms(artist_meta, song_meta)
+        pre_onset = _load_precomputed_onset_env(artist_meta, song_meta)
+    T_gamma = raw_gamma_t.shape[1]
+    # Precompute gamma mean over features per time step (for correlations)
+    gamma_time_mean = np.abs(raw_gamma_t.numpy()[0, :, :]).mean(axis=-1)
+    if pre_rms is not None and pre_rms.size > 1:
+        T_rms = pre_rms.shape[0]
+        if T_rms != T_gamma and T_rms > 1:
+            x_old = np.linspace(0, 1, T_rms)
+            x_new = np.linspace(0, 1, T_gamma)
+            rms_interp = np.interp(x_new, x_old, pre_rms)
+        else:
+            rms_interp = pre_rms[:T_gamma]
+        if np.std(gamma_time_mean[:len(rms_interp)]) > 0 and np.std(rms_interp) > 0:
+            gamma_rms_corr = float(np.corrcoef(gamma_time_mean[:len(rms_interp)], rms_interp)[0, 1])
+            rms_source = "precomputed"
+    if pre_onset is not None and pre_onset.size > 1:
+        T_on = pre_onset.shape[0]
+        if T_on != T_gamma and T_on > 1:
+            x_old = np.linspace(0, 1, T_on)
+            x_new = np.linspace(0, 1, T_gamma)
+            onset_interp = np.interp(x_new, x_old, pre_onset)
+        else:
+            onset_interp = pre_onset[:T_gamma]
+        if np.std(gamma_time_mean[:len(onset_interp)]) > 0 and np.std(onset_interp) > 0:
+            gamma_onset_env_corr = float(np.corrcoef(gamma_time_mean[:len(onset_interp)], onset_interp)[0, 1])
+            onset_env_source = "precomputed"
 
-    # --- FiLM knock-out ΔSI-SDR ---
-    delta_sisdr = None
-    try:
-        # store original gamma/beta
-        orig_gamma = fusion_module.last_film_gamma.clone()
-        orig_beta = fusion_module.last_film_beta.clone()
-        # knockout
-        fusion_module.last_film_gamma[:] = 0.0
-        fusion_module.last_film_beta[:] = 0.0
-        with torch.no_grad():
-            if face is not None and body is not None:
-                output_ko = model(audio, face, body)
-            elif face is not None:
-                output_ko = model(audio, face)
-            elif body is not None:
-                output_ko = model(audio, body)
-            else:
-                output_ko = model(audio, None)
-        # restore gamma/beta
-        fusion_module.last_film_gamma[:] = orig_gamma
-        fusion_module.last_film_beta[:] = orig_beta
-        # SI-SDR delta: placeholder (replace with your SI-SDR function)
-        if hasattr(output, "sisdr") and hasattr(output_ko, "sisdr"):
-            delta_sisdr = float(output.sisdr - output_ko.sisdr)
-    except Exception:
-        delta_sisdr = None
-
+    # --- FiLM knock-out ΔSI-SDR (compute baseline + disable FiLM via flag if available) ---
+    target = sample.get("target")
+    est = output["estimated_wav"].detach().float().to(device).squeeze(0)
+    target_t = target.to(device).float().squeeze(0)
+    base_sisdr = si_sdr(est, target_t).item()
+    ko_sisdr = None
+    prev_flag = fusion_module.film_cross_attention.use_film
+    fusion_module.film_cross_attention.use_film = False
+    with torch.no_grad():
+        if face is not None and body is not None:
+            out_ko = model(audio, face, body)
+        elif face is not None:
+            out_ko = model(audio, face)
+        elif body is not None:
+            out_ko = model(audio, body)
+        else:
+            out_ko = model(audio, None)
+    fusion_module.film_cross_attention.use_film = prev_flag
+    est_ko = out_ko["estimated_wav"].detach().float().to(device).squeeze(0)
+    ko_sisdr = si_sdr(est_ko, target_t).item()
+        
+    delta_sisdr = base_sisdr - ko_sisdr
+    
     analysis = {
         "diagnostics": {**gamma_diag, **beta_diag},
         "scale_stats": {
@@ -213,7 +286,10 @@ def analyze_film_modulation(model, sample, device, debug=False, meta=None, debug
             "feature_abs_mean": feature_gamma_abs_mean.tolist(),
             "feature_std": feature_gamma_std.tolist(),
             "attention_focus_corr": gamma_attention_focus_corr,
-            "audio_corr": gamma_audio_corr,
+            "rms_corr": gamma_rms_corr,
+            "rms_corr_source": rms_source,
+            "onset_env_corr": gamma_onset_env_corr,
+            "onset_env_corr_source": onset_env_source,
         },
         "modulation_effects": {
             "highly_boosted_features": boosted,
@@ -233,7 +309,10 @@ def analyze_film_modulation(model, sample, device, debug=False, meta=None, debug
     if debug and debug_file_handle is not None:
         dbg = {
             **(meta or {}),
-            "gamma_audio_corr": gamma_audio_corr,
+            "gamma_rms_corr": gamma_rms_corr,
+            "gamma_rms_corr_source": rms_source,
+            "gamma_onset_env_corr": gamma_onset_env_corr,
+            "gamma_onset_env_corr_source": onset_env_source,
             "delta_sisdr": delta_sisdr,
         }
         debug_file_handle.write(json.dumps(dbg) + "\n")
@@ -241,31 +320,27 @@ def analyze_film_modulation(model, sample, device, debug=False, meta=None, debug
 
     return analysis
 
-
-# --- Rest of your print_film_summary and main() code remains unchanged ---
-# Add a print section for temporal correlation and ΔSI-SDR:
-
 def print_film_summary(results, model_type):
     print(f"\n{'='*60}")
     print(f"FiLM MODULATION ANALYSIS SUMMARY - {model_type.upper()} MODEL")
     print(f"{'='*60}")
     
-    gamma_audio_corrs = []
+    gamma_rms_corrs = []
     delta_sisdr_list = []
 
     for artist_data in results.values():
         for song_data in artist_data.values():
             for analysis in song_data:
                 if analysis:
-                    if analysis["gamma_stats"].get("audio_corr") is not None:
-                        gamma_audio_corrs.append(analysis["gamma_stats"]["audio_corr"])
+                    if analysis["gamma_stats"].get("rms_corr") is not None:
+                        gamma_rms_corrs.append(analysis["gamma_stats"]["rms_corr"])
                     if analysis.get("film_knockout_delta_sisdr") is not None:
                         delta_sisdr_list.append(analysis["film_knockout_delta_sisdr"])
 
-    if gamma_audio_corrs:
+    if gamma_rms_corrs:
         print(f"\nTemporal correlation |γ| vs audio RMS:")
-        print(f"  Mean: {np.mean(gamma_audio_corrs):.4f} ± {np.std(gamma_audio_corrs):.4f}")
-        print(f"  Range: [{np.min(gamma_audio_corrs):.4f}, {np.max(gamma_audio_corrs):.4f}]")
+        print(f"  Mean: {np.mean(gamma_rms_corrs):.4f} ± {np.std(gamma_rms_corrs):.4f}")
+        print(f"  Range: [{np.min(gamma_rms_corrs):.4f}, {np.max(gamma_rms_corrs):.4f}]")
 
     if delta_sisdr_list:
         print(f"\nFiLM Knock-out ΔSI-SDR:")
@@ -315,49 +390,104 @@ def main(args):
         raise ValueError(f"Unsupported model type: {model_type}")
     model.eval()
 
-    results = defaultdict(lambda: defaultdict(list))
-    print(f"Analyzing FiLM modulation for all {len(dataset)} samples...")
-    
+    # Output dirs (temporal_shuffle style)
+    root_dir = os.path.join(args.output_dir, f"film_analysis_{args.model}")
+    per_song_dir = os.path.join(root_dir, "per_song")
+    os.makedirs(per_song_dir, exist_ok=True)
+    print(f"Per-song outputs -> {per_song_dir}")
+
     debug_fh = None
     if args.debug_film:
-        os.makedirs("results", exist_ok=True)
-        debug_fh = open(f"results/film_debug_{args.model}.jsonl", "w")
+        debug_fh = open(os.path.join(root_dir, f"film_debug_{args.model}.jsonl"), "w")
 
-    for idx, sample in enumerate(tqdm(dataloader)):
-        artist_name = sample["artist"][0]
-        song_name = sample["song"][0]
-        try:
-            analysis = analyze_film_modulation(
-                model,
-                sample,
-                DEVICE,
-                debug=args.debug_film,
-                meta={"artist": artist_name, "song": song_name, "idx": idx},
-                debug_file_handle=debug_fh,
-            )
-        except RuntimeError as e:
-            print(f"Error processing sample for artist: {artist_name}, song: {song_name}")
-            print(f"Sample shape: {sample['mix'].shape}")
-            print(e)
+    # Accumulator similar to song_acc in temporal shuffle script
+    # key: (artist, song) -> dict of metric lists
+    song_acc = {}
+
+    def _avg(lst):
+        vals = [v for v in lst if v is not None]
+        return float(np.mean(vals)) if vals else None
+
+    def _std(lst):
+        vals = [v for v in lst if v is not None]
+        return float(np.std(vals)) if vals else None
+
+    def build_song_entry(artist, song, acc):
+        return {
+            "artist": artist,
+            "song": song,
+            "scale_mean_mean": _avg(acc["scale_mean"]),
+            "scale_mean_std": _std(acc["scale_mean"]),
+            "bias_mean_mean": _avg(acc["bias_mean"]),
+            "bias_mean_std": _std(acc["bias_mean"]),
+            "gamma_abs_mean_mean": _avg(acc["gamma_abs_mean"]),
+            "gamma_abs_mean_std": _std(acc["gamma_abs_mean"]),
+            "total_modulation_mean": _avg(acc["total_modulation"]),
+            "total_modulation_std": _std(acc["total_modulation"]),
+            "rms_corr_mean": _avg(acc["rms_corr"]),
+            "rms_corr_std": _std(acc["rms_corr"]),
+            "onset_env_corr_mean": _avg(acc["onset_env_corr"]),
+            "onset_env_corr_std": _std(acc["onset_env_corr"]),
+            "delta_sisdr_mean": _avg(acc["delta_sisdr"]),
+            "delta_sisdr_std": _std(acc["delta_sisdr"]),
+            "boosted_count_mean": _avg(acc["boosted_count"]),
+            "suppressed_count_mean": _avg(acc["suppressed_count"]),
+        }
+
+    for sample in tqdm(dataloader, desc="Samples"):
+        artist = sample.get("artist", ["unknown"])[0]
+        song = sample.get("song", ["unknown"])[0]
+        key = (artist, song)
+        safe_artist = _sanitize_name(artist)
+        safe_song = _sanitize_name(song)
+        song_entry_path = os.path.join(per_song_dir, f"{safe_artist}__{safe_song}.json")
+
+        # Skip existing unless force
+        if os.path.exists(song_entry_path) and not args.force:
             continue
-        results[artist_name][song_name].append(analysis)
+
+        analysis = analyze_film_modulation(
+            model,
+            sample,
+            DEVICE,
+            debug=args.debug_film,
+            meta={"artist": artist, "song": song},
+            debug_file_handle=debug_fh,
+        )
+        if analysis is None:
+            continue
+
+        if key not in song_acc:
+            song_acc[key] = {
+                "scale_mean": [],
+                "bias_mean": [],
+                "gamma_abs_mean": [],
+                "total_modulation": [],
+                "rms_corr": [],
+                "onset_env_corr": [],
+                "delta_sisdr": [],
+                "boosted_count": [],
+                "suppressed_count": [],
+            }
+        acc = song_acc[key]
+        acc["scale_mean"].append(analysis["scale_stats"]["mean"])  # per-chunk values
+        acc["bias_mean"].append(analysis["bias_stats"]["mean"])  # per-chunk values
+        acc["gamma_abs_mean"].append(analysis["gamma_stats"]["abs_mean"])
+        acc["total_modulation"].append(analysis["modulation_intensity"]["total_modulation"])
+        acc["rms_corr"].append(analysis["gamma_stats"].get("rms_corr"))
+        acc["onset_env_corr"].append(analysis["gamma_stats"].get("onset_env_corr"))
+        acc["delta_sisdr"].append(analysis.get("film_knockout_delta_sisdr"))
+        acc["boosted_count"].append(len(analysis["modulation_effects"]["highly_boosted_features"]))
+        acc["suppressed_count"].append(len(analysis["modulation_effects"]["suppressed_features"]))
+
+        # Write / overwrite aggregated per-song JSON
+        with open(song_entry_path, "w") as f_song:
+            json.dump(build_song_entry(artist, song, acc), f_song, indent=2)
 
     if debug_fh is not None:
         debug_fh.close()
 
-    # Save results
-    os.makedirs("results", exist_ok=True)
-    output_path = f"results/film_analysis_{args.model}_mha_film.json"
-    print(f"Saving results to {output_path}")
-    
-    with open(output_path, "w") as f:
-        json.dump(results, f, indent=4)
-
-    # Print comprehensive summary
-    print_film_summary(results, args.model)
-
-    print(f"\nDetailed results saved to: {output_path}")
-    print("Done.")
+    print("Done. Per-song aggregated files written.")
 
 
 if __name__ == "__main__":
@@ -373,6 +503,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--debug_film", action="store_true", help="Enable per-sample FiLM debug logging"
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default="results", help="Root output directory"
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Recompute songs even if per-song JSON exists"
     )
 
     args = parser.parse_args()
