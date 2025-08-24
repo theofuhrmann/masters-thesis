@@ -4,3 +4,5 @@ dataset
 **/__pycache__/
 venv
 gradient_saliency/results
+ablation_studies/results
+film_analysis/results
