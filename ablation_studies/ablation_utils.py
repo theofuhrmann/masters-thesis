@@ -1,8 +1,15 @@
 import torch
+import os
+import sys
 from typing import Any, Dict
 
 from dotenv import load_dotenv
 load_dotenv()
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
+vovit_path = os.path.abspath(os.getenv("VOVIT_PATH"))
+sys.path.insert(0, vovit_path)
 
 from vovit import VoViT_b, VoViT_f, VoViT_fb  # type: ignore
 from vovit.display.dataloaders_new import ModelType  # type: ignore

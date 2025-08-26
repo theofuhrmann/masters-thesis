@@ -231,9 +231,10 @@ def main(args):
                         if model_type == ModelType.BODY_VIOLIN_FUSION
                         else None
                     ),
-                    keep_highest_correlation_chunks=True,
+                    # keep_highest_correlation_chunks=True,
                     correlation_filter_percentage=args.correlation_filter_percentage,
-                    correlation_filter_top=args.correlation_filter_top,
+                    # correlation_filter_top=args.correlation_filter_top,
+                    filter_face_false_positive=False
                 )
 
                 if len(dataset.items) == 0:
@@ -297,17 +298,25 @@ def main(args):
                     )  # Shape: (num_chunks, 68)
                     averaged_face = stacked_face.mean(dim=0)  # Shape: (68,)
                     song_results["face_saliency"] = averaged_face.tolist()
-
                 if body_saliencies:
                     stacked_body = torch.stack(
                         body_saliencies, dim=0
                     )  # Shape: (num_chunks, 55)
                     averaged_body = stacked_body.mean(dim=0)  # Shape: (55,)
                     song_results["body_saliency"] = averaged_body.tolist()
-
                 if mix_saliencies:
                     averaged_mix = sum(mix_saliencies) / len(mix_saliencies)
                     song_results["mix_saliency"] = averaged_mix
+
+                # Optionally include per-chunk saliency scores
+                if args.save_chunk_saliencies:
+                    song_results["chunk_saliencies"] = {}
+                    if face_saliencies:
+                        song_results["chunk_saliencies"]["face"] = [t.tolist() for t in face_saliencies]
+                    if body_saliencies:
+                        song_results["chunk_saliencies"]["body"] = [t.tolist() for t in body_saliencies]
+                    if mix_saliencies:
+                        song_results["chunk_saliencies"]["mix"] = mix_saliencies  # already list of floats
 
                 with open(output_path, "w") as f:
                     json.dump(
@@ -372,6 +381,12 @@ if __name__ == "__main__":
         action="store_false",
         dest="correlation_filter_top",
         help="Keep worst correlation chunks",
+    )
+    parser.add_argument(
+        "--save-chunk-saliencies",
+        action="store_true",
+        default=False,
+        help="If set, saves per-chunk saliency scores (face/body/mix) instead of only averaged ones",
     )
     args = parser.parse_args()
     main(args)

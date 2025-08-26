@@ -236,14 +236,42 @@ def aggregate_strong_windows_per_chunk(
         aggregated_windows.setdefault(artist, {})
         for song, features in songs.items():
             chunks = {}
-            for feature_name, audio_dict in features.items():
-                for audio_feat_name, windows in audio_dict.items():
+            for _, audio_dict in features.items():
+                for _, windows in audio_dict.items():
                     for time, _ in windows:
                         chunk_index = int(time // chunk_size)
                         chunks[chunk_index] = chunks.get(chunk_index, 0) + 1
             aggregated_windows[artist][song] = chunks
 
     return aggregated_windows
+
+
+def extract_strong_events(total_strong_windows: dict):
+    """Flatten strong correlation windows into event records.
+
+    Returns:
+      events[artist][song] = [ {"time": float, "motion_feature": str, "audio_feature": str, "correlation": float} ]
+    """
+    events = {}
+    for artist, songs in total_strong_windows.items():
+        events.setdefault(artist, {})
+        for song, features in songs.items():
+            song_events = []
+            for motion_feature_name, audio_dict in features.items():
+                for audio_feature_name, windows in audio_dict.items():
+                    for time, corr in windows:
+                        song_events.append(
+                            {
+                                "time": time,
+                                "motion_feature": motion_feature_name,
+                                "audio_feature": audio_feature_name,
+                                "correlation": corr,
+                            }
+                        )
+            # Sort by time for convenience
+            song_events.sort(key=lambda x: x["time"])
+            events[artist][song] = song_events
+    return events
 
 
 def main(args):
@@ -267,22 +295,41 @@ def main(args):
         args.threshold,
     )
 
+    strong_events = extract_strong_events(total_strong_windows)
+
     aggregated_windows = aggregate_strong_windows_per_chunk(
         total_strong_windows
     )
 
     for artist, songs in aggregated_windows.items():
         for song, features in songs.items():
-            output_filename = os.path.join(
+            base_dir = os.path.join(
                 dataset_path,
                 artist,
                 song,
                 args.instrument,
+            )
+            os.makedirs(base_dir, exist_ok=True)
+            aggregated_filename = os.path.join(
+                base_dir,
                 "aggregated_strong_windows.json",
             )
-            with open(output_filename, "w") as f:
+            with open(aggregated_filename, "w") as f:
                 json.dump(features, f, indent=4)
-            print(f"Results saved to {output_filename}")
+            print(f"Aggregated results saved to {aggregated_filename}")
+
+            # Save events for this song if present
+            if (
+                artist in strong_events
+                and song in strong_events[artist]
+                and strong_events[artist][song]
+            ):
+                events_filename = os.path.join(
+                    base_dir, "strong_correlation_events.json"
+                )
+                with open(events_filename, "w") as f:
+                    json.dump(strong_events[artist][song], f, indent=4)
+                print(f"Event list saved to {events_filename}")
 
 
 if __name__ == "__main__":
